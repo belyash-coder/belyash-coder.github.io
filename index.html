@@ -126,6 +126,19 @@
         }
         @keyframes toastIn { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes toastOut { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+                .filters {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 8px; margin: 15px 0; z-index: 1; position: relative;
+        }
+        .filter-btn {
+            background: rgba(255,255,255,0.08); color: #aaa; border: 1px solid rgba(255,255,255,0.15);
+            padding: 8px 16px; font-size: 13px; border-radius: 20px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .filter-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+        .filter-btn.active {
+            background: #e94560; color: white; border-color: #e94560;
+        }
     </style>
 </head>
 <body>
@@ -141,7 +154,20 @@
     </div>
 
     <div class="container">
-        <h1>🎵 Случайный музыкальный жанр</h1>
+        <h1>        <div class="filters">
+            <button class="filter-btn active" onclick="setFilter('all', this)">🎵 Все</button>
+            <button class="filter-btn" onclick="setFilter('rock', this)">🎸 Рок</button>
+            <button class="filter-btn" onclick="setFilter('metal', this)">🤘 Метал</button>
+            <button class="filter-btn" onclick="setFilter('electronic', this)">🎹 Электроника</button>
+            <button class="filter-btn" onclick="setFilter('hip hop', this)">🎤 Хип-хоп</button>
+            <button class="filter-btn" onclick="setFilter('pop', this)">🎵 Поп</button>
+            <button class="filter-btn" onclick="setFilter('dance', this)">🪩 Танцевальная</button>
+            <button class="filter-btn" onclick="setFilter('jazz', this)">🎷 Джаз</button>
+            <button class="filter-btn" onclick="setFilter('folk', this)">🪕 Фолк/Кантри</button>
+            <button class="filter-btn" onclick="setFilter('latin', this)">💃 Латина</button>
+            <button class="filter-btn" onclick="setFilter('world', this)">🌍 Регионы</button>
+            <button class="filter-btn" onclick="setFilter('soul', this)">🎙 Соул/R&B</button>
+        </div></h1>
         <div id="genre">Нажми на кнопку</div>
         <div id="artists"></div>
         <div id="source"></div>
@@ -6452,6 +6478,44 @@ youth orchestra»`;
 
         // Разбираем строки в массивы
         const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
+                let currentGenre = null;
+        let activeFilter = 'all';
+        let filteredGenres = [...everynoiseGenres];
+
+        // === ФИЛЬТРЫ ===
+        const filterRules = {
+            'rock': ['rock', 'punk', 'grunge', 'alternative', 'indie rock', 'garage', 'shoegaze', 'post-rock', 'hardcore punk', 'alt', 'emo', 'grunge', 'psych', 'surf', 'rockabilly', 'krautrock', 'blues rock', 'progressive rock', 'stoner rock', 'folk rock'],
+            'metal': ['metal', 'death', 'black metal', 'thrash', 'doom', 'sludge', 'metalcore', 'deathcore', 'grindcore', 'heavy metal', 'power metal', 'symphonic metal', 'progressive metal', 'nu metal', 'djent', 'groove metal', 'industrial metal', 'gothic metal'],
+            'electronic': ['electronic', 'ambient', 'idm', 'downtempo', 'glitch', 'drone', 'chiptune', 'synthwave', 'vaporwave', 'experimental', 'noise', 'minimal', 'electroacoustic', 'soundtrack', 'vgm', 'techno', 'trance', 'house', 'dubstep', 'breakcore', 'ebm'],
+            'hip hop': ['hip hop', 'rap', 'trap', 'grime', 'drill', 'boom bap', 'crunk', 'gangsta', 'cloud rap', 'emo rap', 'jazz rap', 'conscious hip hop', 'instrumental hip hop'],
+            'pop': ['pop', 'dance pop', 'synthpop', 'electropop', 'dream pop', 'chamber pop', 'baroque pop', 'bubblegum pop', 'teen pop', 'europop', 'indie pop', 'pop rock', 'power pop', 'art pop', 'cantopop', 'mandopop', 'k-pop', 'j-pop'],
+            'dance': ['house', 'techno', 'trance', 'dubstep', 'drum and bass', 'garage', 'breakbeat', 'disco', 'electro', 'hardcore techno', 'hardstyle', 'jungle', 'dnb', 'edm', 'dance', 'rave', 'gabber', 'happy hardcore'],
+            'jazz': ['jazz', 'bebop', 'swing', 'big band', 'fusion', 'smooth jazz', 'cool jazz', 'free jazz', 'latin jazz', 'jazz funk', 'nu jazz', 'acid jazz', 'vocal jazz', 'ragtime', 'dixieland', 'modal jazz'],
+            'folk': ['folk', 'country', 'bluegrass', 'americana', 'singer-songwriter', 'acoustic', 'celtic', 'blues', 'gospel', 'bluegrass', 'old-time', 'western'],
+            'latin': ['latin', 'reggaeton', 'bachata', 'salsa', 'merengue', 'cumbia', 'samba', 'bossa nova', 'mpb', 'tango', 'mariachi', 'norteno', 'corrido', 'banda', 'sertanejo', 'latin pop', 'latin rock', 'tropical', 'dancehall'],
+            'world': ['african', 'arab', 'turkish', 'indian', 'japanese', 'korean', 'chinese', 'russian', 'french', 'german', 'italian', 'spanish', 'brazilian', 'nordic', 'scandinavian', 'irish', 'polish', 'ukrainian', 'balkan', 'persian', 'israeli', 'australian', 'nz'],
+            'soul': ['soul', 'r&b', 'funk', 'disco', 'motown', 'neo soul', 'quiet storm', 'gospel', 'doo-wop', 'contemporary r&b', 'rhythm and blues'],
+            'all': []
+        };
+
+        function matchGenre(genre, filter) {
+            if (filter === 'all') return true;
+            const rules = filterRules[filter] || [];
+            const genreLower = genre.toLowerCase();
+            return rules.some(rule => genreLower.includes(rule));
+        }
+
+        function setFilter(filter, btn) {
+            activeFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filteredGenres = everynoiseGenres.filter(g => matchGenre(g, filter));
+            document.getElementById('counter').textContent = 
+                `Найдено ${filteredGenres.length} жанров`;
+        }
+
+        document.getElementById('counter').textContent = 
+            `Загружено ${everynoiseGenres.length} жанров`;
 
         let currentGenre = null;
         let isTelegram = false;
