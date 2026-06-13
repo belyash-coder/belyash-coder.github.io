@@ -6515,7 +6515,7 @@ youth orchestra`;
         
 
         // Разбираем строки в массивы
-                const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
+                        const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
         let activeFilter = 'all';
         let filteredGenres = [...everynoiseGenres];
         let currentGenre = null;
@@ -6639,7 +6639,7 @@ youth orchestra`;
                 document.getElementById('library-list').innerHTML = currentList.slice().reverse().map(item => {
                     const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                     const date = new Date(item.date).toLocaleDateString('ru-RU');
-                    return `<div class="genre-item"><span>${item.genre} <small style="color:#666">${date}</small></span><div><a href="https://www.last.fm/tag/${encodeURIComponent(item.genre)}" target="_blank">🔴</a> <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🟢</a> <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a> <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
+                    return `<div class="genre-item"><span>${item.genre} <small style="color:#666">${date}</small></span><div><a href="https://www.last.fm/tag/${encodeURIComponent(item.genre)}" target="_blank">🔴</a> <a href="#" onclick="openSpotify('${encodeURIComponent(item.genre)}'); return false;">🟢</a> <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a> <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
                 }).join('');
             }
             
@@ -6685,6 +6685,23 @@ youth orchestra`;
         
         updateLibraryUI();
 
+        // === SPOTIFY (приложение или веб) ===
+        function openSpotify(genre) {
+            const appUrl = `spotify:search:${genre}`;
+            const webUrl = `https://open.spotify.com/search/${genre}`;
+            
+            // Пробуем открыть приложение
+            const start = Date.now();
+            window.location.href = appUrl;
+            
+            // Если через 1 секунду всё ещё на странице — открываем веб
+            setTimeout(() => {
+                if (Date.now() - start < 1500) {
+                    window.open(webUrl, '_blank');
+                }
+            }, 1000);
+        }
+
         // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         function getDailyGenre() {
             const today = new Date().toDateString();
@@ -6695,7 +6712,7 @@ youth orchestra`;
             localStorage.setItem('dailyGenre', JSON.stringify({ date: today, genre }));
             return genre;
         }
-        document.getElementById('daily').innerHTML = `<div class="label">📅 Жанр дня</div><div class="daily-genre"><a href="https://open.spotify.com/search/${encodeURIComponent(getDailyGenre())}" target="_blank">${getDailyGenre()} 🟢</a></div>`;
+        document.getElementById('daily').innerHTML = `<div class="label">📅 Жанр дня</div><div class="daily-genre"><a href="#" onclick="openSpotify('${encodeURIComponent(getDailyGenre())}'); return false;">${getDailyGenre()} 🟢</a></div>`;
 
         // === КОНФЕТТИ ===
         function launchConfetti() {
@@ -6803,14 +6820,12 @@ youth orchestra`;
                         currentGenre = filteredGenres[finalIndex];
                         const slug = currentGenre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                         const everynoiseUrl = `https://everynoise.com/engenremap-${slug}.html`;
-                        const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(currentGenre)}`;
-                        const spotifyAppUrl = `spotify:search:${encodeURIComponent(currentGenre)}`;
                         const lastfmUrl = `https://www.last.fm/tag/${encodeURIComponent(currentGenre)}`;
                         
                         slotContainer.remove();
                         genreElement.style.display = 'inline-block';
                         genreElement.innerHTML = `<a href="${lastfmUrl}" target="_blank">${currentGenre}</a>`;
-                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">🔴 Last.fm</a> <a href="${spotifyAppUrl}" style="color:#1DB954;">🟢 Spotify App</a> <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify Web</a> <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>`;
+                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">🔴 Last.fm</a> <a href="#" onclick="openSpotify('${encodeURIComponent(currentGenre)}'); return false;" style="color:#1DB954;">🟢 Spotify</a> <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>`;
                         
                         const lib = getLibrary();
                         if (!lib.liked.find(item => item.genre === currentGenre) && !lib.disliked.find(item => item.genre === currentGenre)) {
