@@ -6763,14 +6763,14 @@ youth orchestra»`;
             slotContainer.appendChild(slotInner);
             
             const totalDuration = 5000;
-                        const totalGenres = filteredGenres.length;
+            const totalGenres = filteredGenres.length;
             const finalIndex = Math.floor(Math.random() * totalGenres);
             const itemHeight = 70;
             
-            const visibleGenres = [];
+                        const visibleGenres = [];
             for (let i = 0; i < 20; i++) {
-                const idx = (finalIndex - 10 + i + totalGenres) % totalGenres;
-                visibleGenres.push(everynoiseGenres[idx]);
+                const idx = ((finalIndex - 10 + i) % totalGenres + totalGenres) % totalGenres;
+                visibleGenres.push(filteredGenres[idx]);
             }
             
             slotInner.innerHTML = visibleGenres.map(g => 
