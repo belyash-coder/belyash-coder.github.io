@@ -25,12 +25,6 @@
             cursor: pointer; margin: 10px; transition: 0.3s;
         }
         button:hover { background: #ff6b81; transform: scale(1.05); }
-        button.collect {
-            background: #f39c12; font-size: 14px; padding: 10px 25px;
-            display: none;
-        }
-        button.collect:hover { background: #f1c40f; }
-        button.collect.show { display: inline-block; }
         #genre {
             font-size: 32px; margin: 30px; min-height: 50px;
             color: #0f3460; background: white; padding: 20px 40px;
@@ -61,6 +55,18 @@
         }
         #daily .daily-genre a { color: #1DB954; text-decoration: none; }
         #daily .daily-genre:hover { transform: scale(1.05); }
+
+        /* Кнопки Нравится/Не нравится */
+        .rate-btns { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .like-btn, .dislike-btn {
+            font-size: 14px; padding: 10px 25px; border-radius: 25px;
+            cursor: pointer; transition: 0.3s; display: none; color: white;
+        }
+        .like-btn { background: #2ecc71; }
+        .like-btn:hover { background: #27ae60; transform: scale(1.05); }
+        .dislike-btn { background: #e74c3c; }
+        .dislike-btn:hover { background: #c0392b; transform: scale(1.05); }
+        .like-btn.show, .dislike-btn.show { display: inline-block; }
         
         /* Библиотека */
         #library-toggle {
@@ -76,9 +82,15 @@
             padding: 20px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.5);
         }
         #library-panel.open { right: 0; }
-        #library-panel h3 { 
-            margin-top: 40px; color: #f39c12; font-size: 20px;
+        #library-panel h3 { margin-top: 40px; color: #f39c12; font-size: 20px; }
+        .library-tabs { display: flex; gap: 8px; margin: 12px 0; }
+        .library-tab {
+            flex: 1; background: rgba(255,255,255,0.05); color: #aaa;
+            border: 1px solid rgba(255,255,255,0.1); padding: 8px;
+            border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.3s;
         }
+        .library-tab:hover { background: rgba(255,255,255,0.12); color: white; }
+        .library-tab.active { background: #e94560; color: white; border-color: #e94560; }
         #library-panel .genre-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.05);
@@ -114,9 +126,7 @@
             padding: 20px; overflow-y: auto; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
         }
         .filter-panel.open { left: 0; }
-        .filter-panel h3 { 
-            margin-top: 40px; color: #e94560; font-size: 20px; margin-bottom: 15px;
-        }
+        .filter-panel h3 { margin-top: 40px; color: #e94560; font-size: 20px; margin-bottom: 15px; }
         .filter-btn {
             display: block; width: 100%; text-align: left;
             background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid rgba(255,255,255,0.1);
@@ -124,9 +134,7 @@
             cursor: pointer; transition: 0.3s; margin-bottom: 8px;
         }
         .filter-btn:hover { background: rgba(255,255,255,0.12); color: white; }
-        .filter-btn.active {
-            background: #e94560; color: white; border-color: #e94560;
-        }
+        .filter-btn.active { background: #e94560; color: white; border-color: #e94560; }
         .filter-count { float: right; font-size: 12px; opacity: 0.7; margin-top: 2px; }
         #filter-overlay {
             display: none; position: fixed; top: 0; left: 0;
@@ -156,21 +164,19 @@
             color: white; font-size: 14px; margin-bottom: 15px; outline: none;
         }
         .library-search::placeholder { color: #666; }
-        .search-results {
-            max-height: 200px; overflow-y: auto; margin-bottom: 15px;
-        }
+        .search-results { max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
         .search-result-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 8px 12px; margin: 3px 0; background: rgba(255,255,255,0.05);
-            border-radius: 8px; font-size: 13px; cursor: pointer;
+            border-radius: 8px; font-size: 13px;
         }
-        .search-result-item:hover { background: rgba(255,255,255,0.12); }
         .search-result-item .add-btn {
             background: #f39c12; color: #1a1a2e; border: none;
-            padding: 5px 12px; border-radius: 15px; font-size: 12px;
-            cursor: pointer; font-weight: bold;
+            padding: 5px 10px; border-radius: 15px; font-size: 11px;
+            cursor: pointer; font-weight: bold; margin-left: 4px;
         }
-        .search-result-item .add-btn:hover { background: #f1c40f; }
+        .search-result-item .add-btn.like { background: #2ecc71; }
+        .search-result-item .add-btn.dislike { background: #e74c3c; color: white; }
         .search-result-item .already { color: #666; font-size: 12px; }
     </style>
 </head>
@@ -178,20 +184,22 @@
 
     <button class="filter-toggle" onclick="toggleFilter()">🎵 Фильтры</button>
     <div id="filter-overlay" onclick="toggleFilter()"></div>
-    <div class="filter-panel" id="filter-panel">
-        <h3>🎵 Категории</h3>
-    </div>
+    <div class="filter-panel" id="filter-panel"><h3>🎵 Категории</h3></div>
 
     <button id="library-toggle" onclick="toggleLibrary()">📚 Библиотека <span id="lib-count"></span></button>
     
     <div id="overlay" onclick="toggleLibrary()"></div>
     <div id="library-panel">
-        <h3>📚 Моя коллекция</h3>
-                <input type="text" class="library-search" id="library-search" placeholder="🔍 Поиск жанра..." oninput="searchGenres()">
+        <h3>📚 Библиотека</h3>
+        <input type="text" class="library-search" id="library-search" placeholder="🔍 Поиск жанра..." oninput="searchGenres()">
         <div class="search-results" id="search-results"></div>
+        <div class="library-tabs">
+            <button class="library-tab active" onclick="switchTab('liked')">⭐ Нравится</button>
+            <button class="library-tab" onclick="switchTab('disliked')">👎 Не нравится</button>
+        </div>
         <div id="library-stats"></div>
         <div id="library-list"></div>
-        <div id="library-empty">Пока пусто. Нажмите "🍀 Мне повезёт!" и добавляйте жанры в коллекцию!</div>
+        <div id="library-empty">Пока пусто. Крутите рулетку и оценивайте жанры!</div>
     </div>
 
     <div class="container">
@@ -199,13 +207,15 @@
         <div id="genre">Нажми на кнопку</div>
         <div id="description"></div>
         <div id="source"></div>
-        <button class="collect" id="collect-btn" onclick="addToCollection(currentGenre)">⭐ В коллекцию</button>
+        <div class="rate-btns">
+            <button class="like-btn" id="like-btn" onclick="addToCollection(currentGenre, 'like')">⭐ Нравится</button>
+            <button class="dislike-btn" id="dislike-btn" onclick="addToCollection(currentGenre, 'dislike')">👎 Не нравится</button>
+        </div>
         <div id="counter"></div>
         <div id="daily"></div>
         <br>
         <button onclick="getGenre()">🍀 Мне повезёт!</button>
     </div>
-
     <script>
         // 5687 жанров с EveryNoise
         const everynoise = 
@@ -6509,6 +6519,7 @@ youth orchestra`;
         let activeFilter = 'all';
         let filteredGenres = [...everynoiseGenres];
         let currentGenre = null;
+        let activeTab = 'liked';
 
         // === ФИЛЬТРЫ ===
         const filterRules = {
@@ -6572,49 +6583,82 @@ youth orchestra`;
         initFilters();
         document.getElementById('counter').textContent = `Загружено ${everynoiseGenres.length} жанров`;
 
-        // === БИБЛИОТЕКА ===
-        const STORAGE_KEY = 'genreLibrary';
+        // === БИБЛИОТЕКА (две коллекции) ===
+        const STORAGE_KEY = 'genreLibraryV2';
+        
         function getLibrary() {
-            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
+        
         function saveLibrary(lib) { localStorage.setItem(STORAGE_KEY, JSON.stringify(lib)); }
-        function addToCollection(genre) {
+        
+        function addToCollection(genre, type) {
             if (!genre) return;
             let lib = getLibrary();
-            if (lib.find(item => item.genre === genre)) { showToast('Уже в коллекции! ⭐'); return; }
-            lib.push({ genre, date: new Date().toISOString() });
+            lib.liked = lib.liked.filter(item => item.genre !== genre);
+            lib.disliked = lib.disliked.filter(item => item.genre !== genre);
+            lib[type === 'like' ? 'liked' : 'disliked'].push({ genre, date: new Date().toISOString() });
             saveLibrary(lib);
             updateLibraryUI();
-            document.getElementById('collect-btn').classList.remove('show');
-            showToast('Добавлено! ⭐');
+            document.getElementById('like-btn').classList.remove('show');
+            document.getElementById('dislike-btn').classList.remove('show');
+            showToast(type === 'like' ? '⭐ Добавлено в понравившееся!' : '👎 Добавлено в не понравившееся');
         }
+        
         function removeFromCollection(genre) {
-            let lib = getLibrary().filter(item => item.genre !== genre);
+            let lib = getLibrary();
+            lib.liked = lib.liked.filter(item => item.genre !== genre);
+            lib.disliked = lib.disliked.filter(item => item.genre !== genre);
             saveLibrary(lib);
             updateLibraryUI();
-            if (currentGenre === genre) document.getElementById('collect-btn').classList.add('show');
+            if (currentGenre === genre) {
+                document.getElementById('like-btn').classList.add('show');
+                document.getElementById('dislike-btn').classList.add('show');
+            }
         }
+        
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.library-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            updateLibraryUI();
+        }
+        
         function updateLibraryUI() {
             const lib = getLibrary();
-            document.getElementById('lib-count').textContent = lib.length ? `(${lib.length})` : '';
-            document.getElementById('library-stats').textContent = lib.length ? `Собрано ${lib.length} жанров` : '';
-            if (lib.length === 0) {
+            const currentList = activeTab === 'liked' ? lib.liked : lib.disliked;
+            const total = lib.liked.length + lib.disliked.length;
+            document.getElementById('lib-count').textContent = total ? `(${total})` : '';
+            document.getElementById('library-stats').textContent = activeTab === 'liked' ? `⭐ Понравилось: ${lib.liked.length}` : `👎 Не понравилось: ${lib.disliked.length}`;
+            
+            if (currentList.length === 0) {
                 document.getElementById('library-list').innerHTML = '';
                 document.getElementById('library-empty').style.display = 'block';
             } else {
                 document.getElementById('library-empty').style.display = 'none';
-                document.getElementById('library-list').innerHTML = lib.slice().reverse().map(item => {
+                document.getElementById('library-list').innerHTML = currentList.slice().reverse().map(item => {
                     const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                     const date = new Date(item.date).toLocaleDateString('ru-RU');
                     return `<div class="genre-item"><span>${item.genre} <small style="color:#666">${date}</small></span><div><a href="https://www.last.fm/tag/${encodeURIComponent(item.genre)}" target="_blank">🔴</a> <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🟢</a> <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a> <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
                 }).join('');
             }
-            if (currentGenre && !lib.find(item => item.genre === currentGenre)) document.getElementById('collect-btn').classList.add('show');
+            
+            if (currentGenre) {
+                const libNow = getLibrary();
+                const inLiked = libNow.liked.find(item => item.genre === currentGenre);
+                const inDisliked = libNow.disliked.find(item => item.genre === currentGenre);
+                if (!inLiked && !inDisliked) {
+                    document.getElementById('like-btn').classList.add('show');
+                    document.getElementById('dislike-btn').classList.add('show');
+                }
+            }
         }
+        
         function toggleLibrary() {
             document.getElementById('library-panel').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('show');
         }
+        
         function showToast(msg) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -6622,34 +6666,24 @@ youth orchestra`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
         }
-        updateLibraryUI();
-                function searchGenres() {
+        
+        function searchGenres() {
             const query = document.getElementById('library-search').value.trim().toLowerCase();
             const resultsDiv = document.getElementById('search-results');
-            
-            if (query.length < 2) {
-                resultsDiv.innerHTML = '';
-                return;
-            }
-            
+            if (query.length < 2) { resultsDiv.innerHTML = ''; return; }
             const lib = getLibrary();
-            const matches = everynoiseGenres.filter(g => 
-                g.toLowerCase().includes(query)
-            ).slice(0, 15); // максимум 15 результатов
-            
+            const matches = everynoiseGenres.filter(g => g.toLowerCase().includes(query)).slice(0, 15);
             resultsDiv.innerHTML = matches.map(g => {
-                const inLibrary = lib.find(item => item.genre === g);
-                if (inLibrary) {
-                    return `<div class="search-result-item"><span>${g}</span><span class="already">✅ В коллекции</span></div>`;
-                } else {
-                    return `<div class="search-result-item"><span>${g}</span><button class="add-btn" onclick="addToCollection('${g.replace(/'/g, "\\'")}'); searchGenres();">+ Добавить</button></div>`;
-                }
+                const inLiked = lib.liked.find(item => item.genre === g);
+                const inDisliked = lib.disliked.find(item => item.genre === g);
+                if (inLiked) return `<div class="search-result-item"><span>${g}</span><span class="already">⭐</span></div>`;
+                if (inDisliked) return `<div class="search-result-item"><span>${g}</span><span class="already">👎</span></div>`;
+                return `<div class="search-result-item"><span>${g}</span><div><button class="add-btn like" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'like'); searchGenres();">⭐</button><button class="add-btn dislike" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'dislike'); searchGenres();">👎</button></div></div>`;
             }).join('');
-            
-            if (matches.length === 0) {
-                resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Ничего не найдено</div>';
-            }
+            if (matches.length === 0) resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Ничего не найдено</div>';
         }
+        
+        updateLibraryUI();
 
         // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         function getDailyGenre() {
@@ -6661,8 +6695,7 @@ youth orchestra`;
             localStorage.setItem('dailyGenre', JSON.stringify({ date: today, genre }));
             return genre;
         }
-        const dailyGenre = getDailyGenre();
-        document.getElementById('daily').innerHTML = `<div class="label">📅 Жанр дня</div><div class="daily-genre"><a href="https://open.spotify.com/search/${encodeURIComponent(dailyGenre)}" target="_blank">${dailyGenre} 🟢</a></div>`;
+        document.getElementById('daily').innerHTML = `<div class="label">📅 Жанр дня</div><div class="daily-genre"><a href="https://open.spotify.com/search/${encodeURIComponent(getDailyGenre())}" target="_blank">${getDailyGenre()} 🟢</a></div>`;
 
         // === КОНФЕТТИ ===
         function launchConfetti() {
@@ -6683,28 +6716,20 @@ youth orchestra`;
             }
         }
 
-        // === LAST.FM ОПИСАНИЕ ===
+        // === LAST.FM ===
         async function getLastfmDescription(genre) {
             try {
-                const response = await fetch(`https://ws.audioscrobbler.com/2.0/?method=tag.getinfo&tag=${encodeURIComponent(genre)}&api_key=2b75dcb1b4b04c6f8e7a5f3c9d1e0b2a&format=json`);
-                if (!response.ok) return '';
-                const data = await response.json();
-                const summary = data.tag?.wiki?.summary || '';
-                // Убираем HTML и ссылки, берём первые 300 символов
-                const clean = summary.replace(/<[^>]*>/g, '').replace(/Read more.*/gi, '').trim();
+                const r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=tag.getinfo&tag=${encodeURIComponent(genre)}&api_key=2b75dcb1b4b04c6f8e7a5f3c9d1e0b2a&format=json`);
+                if (!r.ok) return '';
+                const d = await r.json();
+                const clean = (d.tag?.wiki?.summary || '').replace(/<[^>]*>/g, '').replace(/Read more.*/gi, '').trim();
                 if (!clean) return '';
-                
-                // Автоперевод через Google Translate
                 try {
                     const tr = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(clean.substring(0, 400))}`);
-                    const trData = await tr.json();
-                    return trData[0]?.map(x => x[0]).join('') || clean.substring(0, 300);
-                } catch(e) {
-                    return clean.substring(0, 300);
-                }
-            } catch(e) {
-                return '';
-            }
+                    const td = await tr.json();
+                    return td[0]?.map(x => x[0]).join('') || clean.substring(0, 300);
+                } catch(e) { return clean.substring(0, 300); }
+            } catch(e) { return ''; }
         }
 
         // === РУЛЕТКА ===
@@ -6714,19 +6739,21 @@ youth orchestra`;
             if (isSpinning || filteredGenres.length === 0) return;
             isSpinning = true;
             
-            const button = document.querySelector('button:not(.collect):not(#library-toggle):not(.filter-toggle)');
+            const button = document.querySelector('button:not(.like-btn):not(.dislike-btn):not(#library-toggle):not(.filter-toggle)');
             button.style.pointerEvents = 'none';
             button.style.opacity = '0.6';
             
             const genreElement = document.getElementById('genre');
             const sourceElement = document.getElementById('source');
             const descElement = document.getElementById('description');
-            const collectBtn = document.getElementById('collect-btn');
+            const likeBtn = document.getElementById('like-btn');
+            const dislikeBtn = document.getElementById('dislike-btn');
             
             sourceElement.innerHTML = '';
             descElement.innerHTML = '';
             genreElement.onclick = null;
-            collectBtn.classList.remove('show');
+            likeBtn.classList.remove('show');
+            dislikeBtn.classList.remove('show');
             
             const slotContainer = document.createElement('div');
             slotContainer.style.cssText = 'overflow:hidden;height:70px;position:relative;margin:30px auto;display:inline-block;background:white;border-radius:20px;padding:0 40px;';
@@ -6784,11 +6811,14 @@ youth orchestra`;
                         genreElement.innerHTML = `<a href="${lastfmUrl}" target="_blank">${currentGenre}</a>`;
                         sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">🔴 Last.fm</a> <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify</a> <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>`;
                         
-                        if (!getLibrary().find(item => item.genre === currentGenre)) collectBtn.classList.add('show');
+                        const lib = getLibrary();
+                        if (!lib.liked.find(item => item.genre === currentGenre) && !lib.disliked.find(item => item.genre === currentGenre)) {
+                            likeBtn.classList.add('show');
+                            dislikeBtn.classList.add('show');
+                        }
                         
                         launchConfetti();
                         
-                        // Загружаем описание
                         descElement.textContent = 'Загружаем описание...';
                         const desc = await getLastfmDescription(currentGenre);
                         descElement.textContent = desc || '';
