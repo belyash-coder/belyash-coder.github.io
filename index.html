@@ -6477,8 +6477,7 @@ youth orchestra»`;
         
 
         // Разбираем строки в массивы
-        const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
-                let currentGenre = null;
+                const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
         let activeFilter = 'all';
         let filteredGenres = [...everynoiseGenres];
 
@@ -6764,7 +6763,7 @@ youth orchestra»`;
             slotContainer.appendChild(slotInner);
             
             const totalDuration = 5000;
-            const totalGenres = everynoiseGenres.length;
+                        const totalGenres = filteredGenres.length;
             const finalIndex = Math.floor(Math.random() * totalGenres);
             const itemHeight = 70;
             
@@ -6808,7 +6807,7 @@ youth orchestra»`;
                     slotInner.style.transform = `translateY(-${finalPosition}px)`;
                     
                     setTimeout(async () => {
-                        currentGenre = everynoiseGenres[finalIndex];
+                                                currentGenre = filteredGenres[finalIndex];
                         
                         const genreSlug = currentGenre
                             .replace(/['']/g, '')
