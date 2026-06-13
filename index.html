@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Случайный музыкальный жанр</title>
-        <style>
+    <style>
+        * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             background: #1a1a2e;
@@ -12,18 +13,28 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             flex-direction: column;
-            overflow: hidden;
+            padding: 20px;
         }
-        .container { text-align: center; padding: 40px; z-index: 1; }
+        .container { text-align: center; padding: 40px 20px; z-index: 1; }
         button {
             background: #e94560; color: white; border: none;
             padding: 15px 30px; font-size: 18px; border-radius: 50px;
             cursor: pointer; margin: 10px; transition: 0.3s;
         }
         button:hover { background: #ff6b81; transform: scale(1.05); }
+        button.secondary {
+            background: rgba(255,255,255,0.1); font-size: 14px; padding: 10px 20px;
+        }
+        button.secondary:hover { background: rgba(255,255,255,0.2); }
+        button.collect {
+            background: #f39c12; font-size: 14px; padding: 10px 25px;
+            display: none;
+        }
+        button.collect:hover { background: #f1c40f; }
+        button.collect.show { display: inline-block; }
         #genre {
             font-size: 32px; margin: 30px; min-height: 50px;
             color: #0f3460; background: white; padding: 20px 40px;
@@ -31,13 +42,8 @@
             position: relative; z-index: 2; cursor: pointer; text-decoration: none;
             transition: all 0.3s ease;
         }
-        #genre:hover {
-            box-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
-            transform: scale(1.03);
-        }
-        #genre a {
-            color: #0f3460; text-decoration: none;
-        }
+        #genre:hover { box-shadow: 0 0 20px rgba(29, 185, 84, 0.5); transform: scale(1.03); }
+        #genre a { color: #0f3460; text-decoration: none; }
         #counter { color: #aaa; margin-top: 10px; z-index: 1; position: relative; }
         #source { margin-top: 15px; z-index: 1; position: relative; }
         #source a { color: #3498db; text-decoration: none; font-size: 14px; margin: 0 8px; }
@@ -52,43 +58,94 @@
             font-size: 22px; margin-top: 5px; cursor: pointer;
             transition: all 0.2s ease; display: inline-block;
         }
-        #daily .daily-genre a {
-            color: #1DB954; text-decoration: none;
-        }
-        #daily .daily-genre:hover {
-            transform: scale(1.05);
-        }
+        #daily .daily-genre a { color: #1DB954; text-decoration: none; }
+        #daily .daily-genre:hover { transform: scale(1.05); }
         #artists { 
             margin-top: 12px; font-size: 14px; color: #ccc; 
             min-height: 20px; z-index: 1; position: relative;
             line-height: 1.6;
         }
-        #artists a {
-            color: #1DB954; text-decoration: none;
-        }
+        #artists a { color: #1DB954; text-decoration: none; }
         #artists a:hover { text-decoration: underline; }
         
+        /* Библиотека */
+        #library-toggle {
+            position: fixed; top: 15px; right: 15px; z-index: 200;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px 18px; border-radius: 25px;
+            cursor: pointer; font-size: 14px; transition: 0.3s;
+        }
+        #library-toggle:hover { background: rgba(255,255,255,0.2); }
+        #library-panel {
+            position: fixed; right: -380px; top: 0; width: 350px; height: 100vh;
+            background: #16213e; z-index: 150; transition: right 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            padding: 20px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+        }
+        #library-panel.open { right: 0; }
+        #library-panel h3 { 
+            margin-top: 40px; color: #f39c12; font-size: 20px;
+        }
+        #library-panel .genre-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.05);
+            border-radius: 8px; font-size: 14px;
+        }
+        #library-panel .genre-item a { color: #3498db; text-decoration: none; font-size: 12px; }
+        #library-panel .genre-item a:hover { text-decoration: underline; }
+        #library-panel .remove-btn {
+            background: none; border: none; color: #e94560; cursor: pointer;
+            font-size: 16px; padding: 0 5px;
+        }
+        #library-panel .remove-btn:hover { color: #ff6b81; }
+        #library-stats { color: #aaa; font-size: 14px; margin-bottom: 15px; }
+        #library-empty { color: #666; text-align: center; margin-top: 30px; }
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 140;
+        }
+        #overlay.show { display: block; }
+        
         .confetti {
-            position: fixed;
-            top: -10px;
-            z-index: 100;
+            position: fixed; top: -10px; z-index: 100;
+            pointer-events: none; animation: fall linear forwards;
+        }
+        @keyframes fall { to { top: 110vh; transform: rotate(720deg); } }
+        
+        .badge {
+            display: inline-block; background: #f39c12; color: #1a1a2e;
+            border-radius: 10px; padding: 2px 8px; font-size: 11px;
+            margin-left: 5px; font-weight: bold;
+        }
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #f39c12; color: #1a1a2e; padding: 12px 25px;
+            border-radius: 25px; font-weight: bold; z-index: 300;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s;
             pointer-events: none;
-            animation: fall linear forwards;
         }
-        @keyframes fall {
-            to {
-                top: 110vh;
-                transform: rotate(720deg);
-            }
-        }
+        @keyframes toastIn { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes toastOut { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
     </style>
 </head>
 <body>
+
+    <button id="library-toggle" onclick="toggleLibrary()">📚 Библиотека <span id="lib-count"></span></button>
+    
+    <div id="overlay" onclick="toggleLibrary()"></div>
+    <div id="library-panel">
+        <h3>📚 Моя коллекция</h3>
+        <div id="library-stats"></div>
+        <div id="library-list"></div>
+        <div id="library-empty">Пока пусто. Нажмите "🍀 Мне повезёт!" и добавляйте жанры в коллекцию!</div>
+    </div>
+
     <div class="container">
         <h1>🎵 Случайный музыкальный жанр</h1>
         <div id="genre">Нажми на кнопку</div>
         <div id="artists"></div>
         <div id="source"></div>
+        <button class="collect" id="collect-btn" onclick="addToCollection(currentGenre)">⭐ В коллекцию</button>
         <div id="counter"></div>
         <div id="daily"></div>
         <br>
@@ -6396,23 +6453,109 @@ youth orchestra»`;
         // Разбираем строки в массивы
         const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
 
+        let currentGenre = null;
+        
+        // === БИБЛИОТЕКА ===
+        function getLibrary() {
+            try {
+                return JSON.parse(localStorage.getItem('genreLibrary') || '[]');
+            } catch(e) {
+                return [];
+            }
+        }
+        
+        function saveLibrary(lib) {
+            localStorage.setItem('genreLibrary', JSON.stringify(lib));
+        }
+        
+        function addToCollection(genre) {
+            if (!genre) return;
+            let lib = getLibrary();
+            if (lib.find(item => item.genre === genre)) {
+                showToast('Этот жанр уже в коллекции! ⭐');
+                return;
+            }
+            lib.push({ genre, date: new Date().toISOString() });
+            saveLibrary(lib);
+            updateLibraryUI();
+            document.getElementById('collect-btn').classList.remove('show');
+            showToast('Добавлено в коллекцию! ⭐');
+        }
+        
+        function removeFromCollection(genre) {
+            let lib = getLibrary().filter(item => item.genre !== genre);
+            saveLibrary(lib);
+            updateLibraryUI();
+            if (currentGenre === genre) {
+                document.getElementById('collect-btn').classList.add('show');
+            }
+        }
+        
+        function updateLibraryUI() {
+            const lib = getLibrary();
+            const countEl = document.getElementById('lib-count');
+            const listEl = document.getElementById('library-list');
+            const statsEl = document.getElementById('library-stats');
+            const emptyEl = document.getElementById('library-empty');
+            
+            countEl.textContent = lib.length ? `(${lib.length})` : '';
+            statsEl.textContent = lib.length ? `Собрано ${lib.length} жанров` : '';
+            
+            if (lib.length === 0) {
+                listEl.innerHTML = '';
+                emptyEl.style.display = 'block';
+            } else {
+                emptyEl.style.display = 'none';
+                listEl.innerHTML = lib.slice().reverse().map(item => {
+                    const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    return `
+                        <div class="genre-item">
+                            <span>${item.genre}</span>
+                            <div>
+                                <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🎧</a>
+                                <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a>
+                                <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Обновляем кнопку "В коллекцию"
+            if (currentGenre && !lib.find(item => item.genre === currentGenre)) {
+                document.getElementById('collect-btn').classList.add('show');
+            }
+        }
+        
+        function toggleLibrary() {
+            document.getElementById('library-panel').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('show');
+        }
+        
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+        
+        updateLibraryUI();
+
+        // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         document.getElementById('counter').textContent = 
             `Загружено ${everynoiseGenres.length} жанров`;
 
-        // Ежедневный жанр
         function getDailyGenre() {
             const today = new Date().toDateString();
             const stored = localStorage.getItem('dailyGenre');
-            
             if (stored) {
                 const data = JSON.parse(stored);
                 if (data.date === today) return data.genre;
             }
-            
             const seed = today.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
             const index = seed % everynoiseGenres.length;
             const genre = everynoiseGenres[index];
-            
             localStorage.setItem('dailyGenre', JSON.stringify({ date: today, genre }));
             return genre;
         }
@@ -6423,10 +6566,9 @@ youth orchestra»`;
             <div class="daily-genre"><a href="https://open.spotify.com/search/${encodeURIComponent(dailyGenre)}" target="_blank">${dailyGenre} 🟢</a></div>
         `;
 
-        // Конфетти
+        // === КОНФЕТТИ ===
         function launchConfetti() {
             const colors = ['#e94560', '#1DB954', '#3498db', '#f39c12', '#9b59b6', '#ff6b81', '#0f3460', '#e74c3c', '#2ecc71'];
-            
             for (let i = 0; i < 60; i++) {
                 setTimeout(() => {
                     const confetti = document.createElement('div');
@@ -6437,17 +6579,15 @@ youth orchestra»`;
                     confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
                     confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
                     confetti.style.animationDuration = Math.random() * 2.5 + 2 + 's';
-                    
                     document.body.appendChild(confetti);
                     setTimeout(() => confetti.remove(), 4500);
                 }, i * 25);
             }
         }
 
-        // Поиск плейлистов жанра на Spotify
+        // === SPOTIFY ===
         async function searchGenreOnSpotify(genre) {
             try {
-                // Используем публичный поиск Spotify
                 const response = await fetch(
                     `https://api.spotify.com/v1/search?q=${encodeURIComponent(genre)}&type=playlist&limit=3&market=US`,
                     {
@@ -6456,37 +6596,36 @@ youth orchestra»`;
                         }
                     }
                 );
-                
                 if (!response.ok) return [];
-                
                 const data = await response.json();
                 return data.playlists?.items?.map(p => ({
-                    name: p.name,
-                    url: p.external_urls.spotify,
-                    tracks: p.tracks?.total || 0
+                    name: p.name, url: p.external_urls.spotify, tracks: p.tracks?.total || 0
                 })) || [];
             } catch (e) {
                 return [];
             }
         }
 
+        // === РУЛЕТКА ===
         let isSpinning = false;
 
         async function getGenre() {
             if (isSpinning) return;
             isSpinning = true;
             
-            const button = document.querySelector('button');
+            const button = document.querySelector('button:not(.secondary):not(.collect):not(#library-toggle)');
             button.style.pointerEvents = 'none';
             button.style.opacity = '0.6';
             
             const genreElement = document.getElementById('genre');
             const sourceElement = document.getElementById('source');
             const artistsElement = document.getElementById('artists');
+            const collectBtn = document.getElementById('collect-btn');
             
             sourceElement.innerHTML = '';
             artistsElement.innerHTML = '';
             genreElement.onclick = null;
+            collectBtn.classList.remove('show');
             
             const slotContainer = document.createElement('div');
             slotContainer.style.cssText = `
@@ -6547,33 +6686,35 @@ youth orchestra»`;
                     slotInner.style.transform = `translateY(-${finalPosition}px)`;
                     
                     setTimeout(async () => {
-                        const finalGenre = everynoiseGenres[finalIndex];
+                        currentGenre = everynoiseGenres[finalIndex];
                         
-                        const genreSlug = finalGenre
+                        const genreSlug = currentGenre
                             .replace(/['']/g, '')
                             .replace(/[^a-zA-Z0-9]/g, '')
                             .toLowerCase();
                         
                         const everynoiseUrl = `https://everynoise.com/engenremap-${genreSlug}.html`;
-                        const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(finalGenre)}`;
+                        const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(currentGenre)}`;
                         
                         slotContainer.remove();
                         genreElement.style.display = 'inline-block';
-                        
-                        // Жанр кликабельный — ведёт на Spotify
-                        genreElement.innerHTML = `<a href="${spotifyUrl}" target="_blank">${finalGenre}</a>`;
-                        genreElement.onclick = () => window.open(spotifyUrl, '_blank');
+                        genreElement.innerHTML = `<a href="${spotifyUrl}" target="_blank">${currentGenre}</a>`;
                         
                         sourceElement.innerHTML = `
                             <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>
                             <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify</a>
                         `;
                         
+                        // Показываем кнопку "В коллекцию" если жанра ещё нет
+                        const lib = getLibrary();
+                        if (!lib.find(item => item.genre === currentGenre)) {
+                            collectBtn.classList.add('show');
+                        }
+                        
                         launchConfetti();
                         
-                        // Ищем плейлисты
                         artistsElement.textContent = '🔍 Ищем плейлисты...';
-                        const playlists = await searchGenreOnSpotify(finalGenre);
+                        const playlists = await searchGenreOnSpotify(currentGenre);
                         if (playlists.length > 0) {
                             artistsElement.innerHTML = '🎧 Плейлисты: ' + playlists.map(p => 
                                 `<a href="${p.url}" target="_blank">${p.name} (${p.tracks} треков)</a>`
