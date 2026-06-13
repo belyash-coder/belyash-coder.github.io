@@ -6804,12 +6804,13 @@ youth orchestra`;
                         const slug = currentGenre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                         const everynoiseUrl = `https://everynoise.com/engenremap-${slug}.html`;
                         const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(currentGenre)}`;
+                        const spotifyAppUrl = `spotify:search:${encodeURIComponent(currentGenre)}`;
                         const lastfmUrl = `https://www.last.fm/tag/${encodeURIComponent(currentGenre)}`;
                         
                         slotContainer.remove();
                         genreElement.style.display = 'inline-block';
                         genreElement.innerHTML = `<a href="${lastfmUrl}" target="_blank">${currentGenre}</a>`;
-                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">🔴 Last.fm</a> <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify</a> <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>`;
+                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">🔴 Last.fm</a> <a href="${spotifyAppUrl}" style="color:#1DB954;">🟢 Spotify App</a> <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify Web</a> <a href="${everynoiseUrl}" target="_blank">🔗 EveryNoise</a>`;
                         
                         const lib = getLibrary();
                         if (!lib.liked.find(item => item.genre === currentGenre) && !lib.disliked.find(item => item.genre === currentGenre)) {
