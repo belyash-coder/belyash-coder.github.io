@@ -6454,52 +6454,106 @@ youth orchestra»`;
         const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
 
         let currentGenre = null;
+        let isTelegram = false;
+        let tg = null;
         
-        // === БИБЛИОТЕКА ===
+        // === TELEGRAM ===
+        if (window.Telegram && window.Telegram.WebApp) {
+            isTelegram = true;
+            tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+        
+        // === ОБЛАЧНОЕ ХРАНИЛИЩЕ TELEGRAM ===
+        const STORAGE_KEY = 'genreLibrary';
+        
         function getLibrary() {
-            try {
-                return JSON.parse(localStorage.getItem('genreLibrary') || '[]');
-            } catch(e) {
-                return [];
+            if (isTelegram) {
+                try {
+                    const raw = tg.CloudStorage.getItem(STORAGE_KEY);
+                    return raw ? JSON.parse(raw) : [];
+                } catch(e) {
+                    return [];
+                }
+            } else {
+                try {
+                    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                } catch(e) {
+                    return [];
+                }
             }
         }
         
-        function saveLibrary(lib) {
-            localStorage.setItem('genreLibrary', JSON.stringify(lib));
+        async function getLibraryAsync() {
+            if (isTelegram) {
+                return new Promise((resolve) => {
+                    tg.CloudStorage.getItem(STORAGE_KEY, (err, value) => {
+                        if (err || !value) {
+                            resolve([]);
+                        } else {
+                            try {
+                                resolve(JSON.parse(value));
+                            } catch(e) {
+                                resolve([]);
+                            }
+                        }
+                    });
+                });
+            } else {
+                return getLibrary();
+            }
         }
         
-        function addToCollection(genre) {
+        async function saveLibrary(lib) {
+            if (isTelegram) {
+                return new Promise((resolve) => {
+                    tg.CloudStorage.setItem(STORAGE_KEY, JSON.stringify(lib), (err, success) => {
+                        if (success) {
+                            console.log('✅ Коллекция сохранена в облако Telegram');
+                        }
+                        resolve(success);
+                    });
+                });
+            } else {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
+                return true;
+            }
+        }
+        
+        async function addToCollection(genre) {
             if (!genre) return;
-            let lib = getLibrary();
+            let lib = await getLibraryAsync();
             if (lib.find(item => item.genre === genre)) {
                 showToast('Этот жанр уже в коллекции! ⭐');
                 return;
             }
             lib.push({ genre, date: new Date().toISOString() });
-            saveLibrary(lib);
-            updateLibraryUI();
+            await saveLibrary(lib);
+            await updateLibraryUI();
             document.getElementById('collect-btn').classList.remove('show');
-            showToast('Добавлено в коллекцию! ⭐');
+            showToast('Добавлено в коллекцию! ☁️');
         }
         
-        function removeFromCollection(genre) {
-            let lib = getLibrary().filter(item => item.genre !== genre);
-            saveLibrary(lib);
-            updateLibraryUI();
+        async function removeFromCollection(genre) {
+            let lib = await getLibraryAsync();
+            lib = lib.filter(item => item.genre !== genre);
+            await saveLibrary(lib);
+            await updateLibraryUI();
             if (currentGenre === genre) {
                 document.getElementById('collect-btn').classList.add('show');
             }
         }
         
-        function updateLibraryUI() {
-            const lib = getLibrary();
+        async function updateLibraryUI() {
+            const lib = await getLibraryAsync();
             const countEl = document.getElementById('lib-count');
             const listEl = document.getElementById('library-list');
             const statsEl = document.getElementById('library-stats');
             const emptyEl = document.getElementById('library-empty');
             
             countEl.textContent = lib.length ? `(${lib.length})` : '';
-            statsEl.textContent = lib.length ? `Собрано ${lib.length} жанров` : '';
+            statsEl.textContent = lib.length ? `Собрано ${lib.length} жанров ${isTelegram ? '☁️' : '💾'}` : '';
             
             if (lib.length === 0) {
                 listEl.innerHTML = '';
@@ -6508,9 +6562,10 @@ youth orchestra»`;
                 emptyEl.style.display = 'none';
                 listEl.innerHTML = lib.slice().reverse().map(item => {
                     const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const date = new Date(item.date).toLocaleDateString('ru-RU');
                     return `
                         <div class="genre-item">
-                            <span>${item.genre}</span>
+                            <span>${item.genre} <small style="color:#666">${date}</small></span>
                             <div>
                                 <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🎧</a>
                                 <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a>
@@ -6521,7 +6576,7 @@ youth orchestra»`;
                 }).join('');
             }
             
-            // Обновляем кнопку "В коллекцию"
+            // Кнопка "В коллекцию"
             if (currentGenre && !lib.find(item => item.genre === currentGenre)) {
                 document.getElementById('collect-btn').classList.add('show');
             }
@@ -6540,11 +6595,14 @@ youth orchestra»`;
             setTimeout(() => toast.remove(), 2000);
         }
         
-        updateLibraryUI();
+        // Загружаем библиотеку при старте
+        (async () => {
+            await updateLibraryUI();
+        })();
 
         // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         document.getElementById('counter').textContent = 
-            `Загружено ${everynoiseGenres.length} жанров`;
+            `Загружено ${everynoiseGenres.length} жанров ${isTelegram ? '• Telegram Mini App' : '• Браузер'}`;
 
         function getDailyGenre() {
             const today = new Date().toDateString();
@@ -6705,8 +6763,7 @@ youth orchestra»`;
                             <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">🟢 Spotify</a>
                         `;
                         
-                        // Показываем кнопку "В коллекцию" если жанра ещё нет
-                        const lib = getLibrary();
+                        const lib = await getLibraryAsync();
                         if (!lib.find(item => item.genre === currentGenre)) {
                             collectBtn.classList.add('show');
                         }
