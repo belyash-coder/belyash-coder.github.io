@@ -150,6 +150,28 @@
         }
         @keyframes toastIn { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
         @keyframes toastOut { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+        .library-search {
+            width: 100%; padding: 10px 15px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+            color: white; font-size: 14px; margin-bottom: 15px; outline: none;
+        }
+        .library-search::placeholder { color: #666; }
+        .search-results {
+            max-height: 200px; overflow-y: auto; margin-bottom: 15px;
+        }
+        .search-result-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; margin: 3px 0; background: rgba(255,255,255,0.05);
+            border-radius: 8px; font-size: 13px; cursor: pointer;
+        }
+        .search-result-item:hover { background: rgba(255,255,255,0.12); }
+        .search-result-item .add-btn {
+            background: #f39c12; color: #1a1a2e; border: none;
+            padding: 5px 12px; border-radius: 15px; font-size: 12px;
+            cursor: pointer; font-weight: bold;
+        }
+        .search-result-item .add-btn:hover { background: #f1c40f; }
+        .search-result-item .already { color: #666; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -165,6 +187,8 @@
     <div id="overlay" onclick="toggleLibrary()"></div>
     <div id="library-panel">
         <h3>📚 Моя коллекция</h3>
+                <input type="text" class="library-search" id="library-search" placeholder="🔍 Поиск жанра..." oninput="searchGenres()">
+        <div class="search-results" id="search-results"></div>
         <div id="library-stats"></div>
         <div id="library-list"></div>
         <div id="library-empty">Пока пусто. Нажмите "🍀 Мне повезёт!" и добавляйте жанры в коллекцию!</div>
@@ -6599,6 +6623,33 @@ youth orchestra`;
             setTimeout(() => toast.remove(), 2000);
         }
         updateLibraryUI();
+                function searchGenres() {
+            const query = document.getElementById('library-search').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('search-results');
+            
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            
+            const lib = getLibrary();
+            const matches = everynoiseGenres.filter(g => 
+                g.toLowerCase().includes(query)
+            ).slice(0, 15); // максимум 15 результатов
+            
+            resultsDiv.innerHTML = matches.map(g => {
+                const inLibrary = lib.find(item => item.genre === g);
+                if (inLibrary) {
+                    return `<div class="search-result-item"><span>${g}</span><span class="already">✅ В коллекции</span></div>`;
+                } else {
+                    return `<div class="search-result-item"><span>${g}</span><button class="add-btn" onclick="addToCollection('${g.replace(/'/g, "\\'")}'); searchGenres();">+ Добавить</button></div>`;
+                }
+            }).join('');
+            
+            if (matches.length === 0) {
+                resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Ничего не найдено</div>';
+            }
+        }
 
         // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         function getDailyGenre() {
