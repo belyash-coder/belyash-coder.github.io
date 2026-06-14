@@ -252,6 +252,7 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+                #sync-input:focus::placeholder { color: transparent; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -275,10 +276,10 @@
             <button class="library-tab disliked" onclick="switchTab('disliked')">❌ Dislike</button>
         </div>
         <div id="library-stats"></div>
-                        <div style="margin:10px 0;display:flex;gap:6px;align-items:stretch;">
-            <button id="sync-btn" onclick="generateSyncCode()" style="flex:1;font-size:11px;padding:7px 0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:15px;color:white;cursor:pointer;white-space:nowrap;">🔗 Get Code</button>
-            <input type="text" id="sync-input" placeholder="Enter code" style="flex:1;padding:7px 8px;border-radius:15px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:11px;outline:none;text-align:center;">
-            <button onclick="applySyncCode()" style="flex:1;font-size:11px;padding:7px 0;background:rgba(46,204,113,0.2);border:1px solid rgba(46,204,113,0.4);border-radius:15px;color:#2ecc71;cursor:pointer;white-space:nowrap;">Sync</button>
+                    <div style="margin:10px 0;display:flex;gap:6px;align-items:center;justify-content:center;">
+            <button id="sync-btn" onclick="generateSyncCode()" style="height:34px;font-size:11px;padding:0 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:15px;color:white;cursor:pointer;white-space:nowrap;">🔗 Get Code</button>
+            <input type="text" id="sync-input" placeholder="code" style="height:34px;width:80px;padding:0 6px;border-radius:15px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:11px;outline:none;text-align:center;box-sizing:border-box; text-transform:uppercase;">
+            <button onclick="applySyncCode()" style="height:34px;font-size:11px;padding:0 10px;background:rgba(46,204,113,0.2);border:1px solid rgba(46,204,113,0.4);border-radius:15px;color:#2ecc71;cursor:pointer;white-space:nowrap;">Sync</button>
         </div>
         <div id="library-list"></div>
         <div id="library-empty">Empty. Spin the wheel and rate genres!</div>
