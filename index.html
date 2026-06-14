@@ -253,6 +253,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
                 #sync-input:focus::placeholder { color: transparent; }
+                        #library-search:focus::placeholder { color: transparent; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -6744,6 +6745,8 @@ youth orchestra`;
             document.getElementById('like-btn').classList.remove('show');
             document.getElementById('dislike-btn').classList.remove('show');
             showToast(type === 'like' ? '✔️ Added to Liked!' : '❌ Added to Disliked');
+                        document.getElementById('library-search').value = '';
+            document.getElementById('search-results').innerHTML = '';
         }
         
         function removeFromCollection(genre) {
