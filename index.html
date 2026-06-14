@@ -106,7 +106,7 @@
         #library-toggle:hover { background: rgba(255,255,255,0.2); }
         #library-panel {
             position: fixed; right: -380px; top: 0; width: 350px; height: 100vh;
-            background: #16213e; z-index: 160;
+            background: #16213e; z-index: 160; transition: right 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
             padding: 20px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.5);
         }
         #library-panel.open { right: 0; }
