@@ -6818,38 +6818,9 @@ youth orchestra`;
             });
         }
 
-        function autoSync() {
-            const code = localStorage.getItem('syncCode');
-            if (!code) return;
-            db.collection("syncCodes").doc(code).get().then((doc) => {
-                if (!doc.exists || Date.now() - doc.data().created > 86400000) {
-                    localStorage.removeItem('syncCode');
-                    return;
-                }
-                const remoteLib = doc.data().library;
-                const localLib = getLibrary();
-                if (JSON.stringify(remoteLib) === JSON.stringify(localLib)) return;
-                const merged = {
-                    liked: [...new Set([...remoteLib.liked.map(i=>i.genre), ...localLib.liked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
-                    disliked: [...new Set([...remoteLib.disliked.map(i=>i.genre), ...localLib.disliked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
-                };
-                saveLibrary(merged);
-                updateLibraryUI();
-                // Обновляем код в облаке
-                db.collection("syncCodes").doc(code).set({
-                    library: merged,
-                    created: Date.now()
-                }, { merge: true });
-            }).catch(() => {});
-        }
+        
 
         // Автосинхронизация при загрузке и после каждого добавления
-        setTimeout(autoSync, 2000);
-        const origSaveLibrary = saveLibrary;
-        saveLibrary = function(lib) {
-            origSaveLibrary(lib);
-            setTimeout(autoSync, 500);
-        };
         function updateLibraryUI() {
             const lib = getLibrary();
             const currentList = activeTab === 'liked' ? lib.liked : lib.disliked;
