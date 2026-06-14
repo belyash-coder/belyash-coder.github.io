@@ -275,6 +275,11 @@
             <button class="library-tab disliked" onclick="switchTab('disliked')">❌ Dislike</button>
         </div>
         <div id="library-stats"></div>
+                <div style="margin:10px 0;display:flex;gap:8px;">
+            <button id="sync-btn" onclick="generateSyncCode()" style="font-size:12px;padding:8px 15px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:white;cursor:pointer;">🔗 Get Sync Code</button>
+            <input type="text" id="sync-input" placeholder="Enter code" style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:white;font-size:12px;outline:none;">
+            <button onclick="applySyncCode()" style="font-size:12px;padding:8px 15px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:white;cursor:pointer;">Sync</button>
+        </div>
         <div id="library-list"></div>
         <div id="library-empty">Empty. Spin the wheel and rate genres!</div>
     </div>
@@ -6758,6 +6763,40 @@ auth.onAuthStateChanged((user) => {
             activeTabEl.classList.add('active');
             activeTabEl.classList.add(tab === 'liked' ? 'liked' : 'disliked');
             updateLibraryUI();
+        }
+                function generateSyncCode() {
+            if (!firebaseUserId) { showToast('Not authorized'); return; }
+            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            db.collection("syncCodes").doc(code).set({
+                userId: firebaseUserId,
+                library: getLibrary(),
+                created: Date.now()
+            }).then(() => {
+                document.getElementById('sync-input').value = code;
+                showToast('Code: ' + code);
+            });
+        }
+
+        function applySyncCode() {
+            if (!firebaseUserId) { showToast('Not authorized'); return; }
+            const code = document.getElementById('sync-input').value.trim().toUpperCase();
+            if (!code) return;
+            db.collection("syncCodes").doc(code).get().then((doc) => {
+                if (!doc.exists) { showToast('Invalid code'); return; }
+                const data = doc.data();
+                if (Date.now() - data.created > 3600000) { showToast('Code expired (1h)'); return; }
+                // Объединяем коллекции
+                const remoteLib = data.library;
+                const localLib = getLibrary();
+                const merged = {
+                    liked: [...new Set([...remoteLib.liked.map(i=>i.genre), ...localLib.liked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
+                    disliked: [...new Set([...remoteLib.disliked.map(i=>i.genre), ...localLib.disliked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
+                };
+                saveLibrary(merged);
+                updateLibraryUI();
+                document.getElementById('sync-input').value = '';
+                showToast('Synced! ' + merged.liked.length + ' liked');
+            });
         }
         function updateLibraryUI() {
             const lib = getLibrary();
