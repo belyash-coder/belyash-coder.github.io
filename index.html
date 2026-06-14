@@ -6700,27 +6700,32 @@ auth.onAuthStateChanged((user) => {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
         function saveLibrary(lib) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
-            if (firebaseUserId) {
-                db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true }).catch(() => {});
-            }
-        }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
+    if (firebaseUserId) {
+        db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true })
+        .then(() => console.log('✅ Saved to Firebase:', lib))
+        .catch((e) => console.log('❌ Firebase save error:', e));
+    } else {
+        console.log('⚠️ Not saved — not authorized');
+    }
+}
         function loadFromCloud() {
-            if (!firebaseUserId) return;
-            db.collection("users").doc(firebaseUserId).get().then((doc) => {
-                if (doc.exists && doc.data().library) {
-                    const cloudLib = doc.data().library;
-                    const localLib = getLibrary();
-                    // Объединяем облачную и локальную коллекции
-                    const merged = {
-                        liked: [...new Set([...cloudLib.liked.map(i => i.genre), ...localLib.liked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
-                        disliked: [...new Set([...cloudLib.disliked.map(i => i.genre), ...localLib.disliked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
-                    };
-                    saveLibrary(merged);
-                    updateLibraryUI();
-                }
-            }).catch(() => {});
+    if (!firebaseUserId) { console.log('⚠️ No userId, skip load'); return; }
+    console.log('📥 Loading from cloud...');
+    db.collection("users").doc(firebaseUserId).get().then((doc) => {
+        console.log('📥 Cloud response:', doc.exists, doc.data());
+        if (doc.exists && doc.data().library) {
+            const cloudLib = doc.data().library;
+            const localLib = getLibrary();
+            const merged = {
+                liked: [...new Set([...cloudLib.liked.map(i => i.genre), ...localLib.liked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
+                disliked: [...new Set([...cloudLib.disliked.map(i => i.genre), ...localLib.disliked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
+            };
+            saveLibrary(merged);
+            updateLibraryUI();
         }
+    }).catch(() => {});
+}
         function addToCollection(genre, type) {
             if (!genre) return;
             let lib = getLibrary();
