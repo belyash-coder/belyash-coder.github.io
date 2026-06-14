@@ -6626,13 +6626,15 @@ youth orchestra`;
         const auth = firebase.auth();
         let firebaseUserId = null;
 
-        auth.onAuthStateChanged((user) => {
+                auth.onAuthStateChanged((user) => {
             if (user) {
                 firebaseUserId = user.uid;
-                document.getElementById('login-btn').style.display = 'none';
+                const btn = document.getElementById('login-btn');
+                if (btn) btn.style.display = 'none';
                 loadFromCloud();
             } else {
-                document.getElementById('login-btn').style.display = 'block';
+                const btn = document.getElementById('login-btn');
+                if (btn) btn.style.display = 'block';
             }
         });
 
