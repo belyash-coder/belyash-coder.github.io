@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Случайный музыкальный жанр</title>
-        <style>
+    <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         body {
@@ -26,7 +26,7 @@
             cursor: pointer; margin: 10px; transition: 0.3s;
         }
         button:hover { background: #ff6b81; transform: scale(1.05); box-shadow: 0 0 30px rgba(233, 69, 96, 0.6); }
-                        #genre {
+        #genre {
             font-size: 32px; margin: 30px 30px 10px 30px;
             color: white;
             background: rgba(46, 204, 113, 0.15);
@@ -46,7 +46,8 @@
         }
         #genre a { color: white; text-decoration: none; }
         #counter { color: #aaa; margin-top: 10px; z-index: 1; position: relative; }
-#source { margin-top: 1px; z-index: 1; position: relative; }        #source a { color: #3498db; text-decoration: none; font-size: 14px; margin: 0 8px; }
+        #source { margin-top: 1px; z-index: 1; position: relative; }
+        #source a { color: #3498db; text-decoration: none; font-size: 14px; margin: 0 8px; }
         #source a:hover { text-decoration: underline; }
         #description {
             margin-top: 15px; font-size: 14px; color: #ccc;
@@ -54,7 +55,7 @@
             min-height: 20px;
         }
         #daily { 
-            margin-top: 25px; z-index: 1; position: relative;
+            margin-top: 25px; z-index: 1; position: relative; margin-bottom: 0;
             background: rgba(255,255,255,0.08); padding: 15px 25px;
             border-radius: 15px; border: 1px solid rgba(255,255,255,0.15);
         }
@@ -64,10 +65,9 @@
             transition: all 0.2s ease; display: inline-block;
             margin-bottom: 0;
         }
-#daily .daily-genre a { color: #1abc9c; text-decoration: none; }        #daily .daily-genre:hover { transform: scale(1.05); }
+        #daily a { color: #1abc9c; text-decoration: none; }
+        #daily .daily-genre:hover { transform: scale(1.05); }
 
-        /* Кнопки Нравится/Не нравится */
-                /* Кнопки Нравится/Не нравится */
         .rate-btns { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
         .like-btn, .dislike-btn {
             font-size: 14px; padding: 10px 25px; border-radius: 25px;
@@ -76,34 +76,27 @@
             -webkit-backdrop-filter: blur(8px);
         }
         .like-btn {
-            border: 1px solid rgba(46, 204, 113, 0.4);
-            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.25);
+            color: rgba(46, 204, 113, 0.6);
         }
         .like-btn:hover {
-            background: rgba(46, 204, 113, 0.15);
-            border-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.08);
+            border-color: rgba(46, 204, 113, 0.35);
+            color: rgba(46, 204, 113, 0.8);
             transform: scale(1.05);
         }
         .dislike-btn {
-            border: 1px solid rgba(231, 76, 60, 0.4);
-            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.25);
+            color: rgba(231, 76, 60, 0.6);
         }
         .dislike-btn:hover {
-            background: rgba(231, 76, 60, 0.15);
-            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.08);
+            border-color: rgba(231, 76, 60, 0.35);
+            color: rgba(231, 76, 60, 0.8);
             transform: scale(1.05);
         }
         .like-btn.show, .dislike-btn.show { display: inline-block; }
 
-        #lucky-btn {
-            background: linear-gradient(135deg, #2ecc71, #1abc9c);
-        }
-        #lucky-btn:hover {
-            background: linear-gradient(135deg, #1abc9c, #2ecc71);
-            box-shadow: 0 0 30px rgba(46, 204, 113, 0.6);
-        }
-        
-        /* Библиотека */
         #library-toggle {
             position: fixed; top: 15px; right: 15px; z-index: 200;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
@@ -120,12 +113,13 @@
         #library-panel h3 { margin-top: 40px; color: #f39c12; font-size: 20px; }
         .library-tabs { display: flex; gap: 8px; margin: 12px 0; }
         .library-tab {
-            flex: 1; background: rgba(255,255,255,0.05); color: #aaa;
+            flex: 1; background: transparent; color: #aaa;
             border: 1px solid rgba(255,255,255,0.1); padding: 8px;
             border-radius: 8px; cursor: pointer; font-size: 13px; transition: 0.3s;
         }
-        .library-tab:hover { background: rgba(255,255,255,0.12); color: white; }
-        .library-tab.active { background: #e94560; color: white; border-color: #e94560; }
+        .library-tab:hover { background: rgba(255,255,255,0.08); color: white; }
+        .library-tab.liked.active { background: transparent; color: #2ecc71; border-color: rgba(46, 204, 113, 0.4); }
+        .library-tab.disliked.active { background: transparent; color: #e74c3c; border-color: rgba(231, 76, 60, 0.4); }
         #library-panel .genre-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.05);
@@ -146,8 +140,7 @@
             z-index: 140;
         }
         #overlay.show { display: block; }
-        
-        /* Фильтры */
+
         .filter-toggle {
             position: fixed; top: 15px; left: 15px; z-index: 200;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
@@ -177,17 +170,21 @@
             z-index: 140;
         }
         #filter-overlay.show { display: block; }
-        
+
         .confetti {
             position: fixed; top: -10px; z-index: 100;
             pointer-events: none; animation: fall linear forwards;
         }
         @keyframes fall { to { top: 110vh; transform: rotate(720deg); } }
-        
-        .toast {
+
+                .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #f39c12; color: #1a1a2e; padding: 12px 25px;
-            border-radius: 25px; font-weight: bold; z-index: 300;
+            background: rgba(46, 204, 113, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: white; padding: 12px 25px;
+            border-radius: 25px; font-weight: 500; z-index: 300;
             animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s;
             pointer-events: none;
         }
@@ -234,10 +231,11 @@
     <div id="overlay" onclick="toggleLibrary()"></div>
     <div id="library-panel">
         <h3>📚 Collection</h3>
-<input type="text" class="library-search" id="library-search" placeholder="🔍 Search genre..." oninput="searchGenres()">        <div class="search-results" id="search-results"></div>
+        <input type="text" class="library-search" id="library-search" placeholder="🔍 Search genre..." oninput="searchGenres()">
+        <div class="search-results" id="search-results"></div>
         <div class="library-tabs">
-            <button class="library-tab active" onclick="switchTab('liked')">✔️</button>
-            <button class="library-tab" onclick="switchTab('disliked')">❌</button>
+            <button class="library-tab liked active" onclick="switchTab('liked')">✔️ Like</button>
+            <button class="library-tab disliked" onclick="switchTab('disliked')">❌ Dislike</button>
         </div>
         <div id="library-stats"></div>
         <div id="library-list"></div>
@@ -246,7 +244,7 @@
 
     <div class="container">
         <h1 style="font-size: 24px;">Expand Your Music Boundaries</h1>
-<div id="daily"></div>
+        <div id="daily"></div>
         <div id="genre" onclick="getGenre()">Random Genre</div>
         <div id="description"></div>
         <div id="source"></div>
@@ -255,9 +253,7 @@
             <button class="dislike-btn" id="dislike-btn" onclick="addToCollection(currentGenre, 'dislike')">❌</button>
         </div>
         <div id="counter"></div>
-        
         <br>
-        <button id="lucky-btn" onclick="getGenre()" style="display:none;">Random Genre</button>
     </div>
     <script>
         // 5687 жанров с EveryNoise
@@ -6560,13 +6556,13 @@ youth orchestra`;
         // Разбираем строки в массивы
         
         
+        
         const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
         let activeFilter = 'all';
         let filteredGenres = [...everynoiseGenres];
         let currentGenre = null;
         let activeTab = 'liked';
 
-        // === ФИЛЬТРЫ ===
         const filterRules = {
             'rock': ['rock', 'punk', 'grunge', 'alternative', 'indie rock', 'garage', 'shoegaze', 'post-rock', 'hardcore punk', 'alt', 'emo', 'psych', 'surf', 'rockabilly', 'krautrock', 'blues rock', 'progressive rock', 'stoner rock', 'folk rock'],
             'metal': ['metal', 'death', 'black metal', 'thrash', 'doom', 'sludge', 'metalcore', 'deathcore', 'grindcore', 'heavy metal', 'power metal', 'symphonic metal', 'progressive metal', 'nu metal', 'djent', 'groove metal', 'industrial metal', 'gothic metal'],
@@ -6628,15 +6624,11 @@ youth orchestra`;
         initFilters();
         document.getElementById('counter').textContent = `Over 6,000 genres`;
 
-        // === БИБЛИОТЕКА (две коллекции) ===
         const STORAGE_KEY = 'genreLibraryV2';
-        
         function getLibrary() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
-        
         function saveLibrary(lib) { localStorage.setItem(STORAGE_KEY, JSON.stringify(lib)); }
-        
         function addToCollection(genre, type) {
             if (!genre) return;
             let lib = getLibrary();
@@ -6647,9 +6639,8 @@ youth orchestra`;
             updateLibraryUI();
             document.getElementById('like-btn').classList.remove('show');
             document.getElementById('dislike-btn').classList.remove('show');
-            showToast(type === 'like' ? '⭐ Added to Liked!' : '👎 Added to Disliked');
+            showToast(type === 'like' ? '✔️ Added to Liked!' : '❌ Added to Disliked');
         }
-        
         function removeFromCollection(genre) {
             let lib = getLibrary();
             lib.liked = lib.liked.filter(item => item.genre !== genre);
@@ -6661,21 +6652,22 @@ youth orchestra`;
                 document.getElementById('dislike-btn').classList.add('show');
             }
         }
-        
         function switchTab(tab) {
             activeTab = tab;
-            document.querySelectorAll('.library-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.querySelectorAll('.library-tab').forEach(t => {
+                t.classList.remove('active', 'liked', 'disliked');
+            });
+            const activeTabEl = document.querySelector(`[onclick="switchTab('${tab}')"]`);
+            activeTabEl.classList.add('active');
+            activeTabEl.classList.add(tab === 'liked' ? 'liked' : 'disliked');
             updateLibraryUI();
         }
-        
         function updateLibraryUI() {
             const lib = getLibrary();
             const currentList = activeTab === 'liked' ? lib.liked : lib.disliked;
             const total = lib.liked.length + lib.disliked.length;
             document.getElementById('lib-count').textContent = total ? `(${total})` : '';
-            document.getElementById('library-stats').textContent = activeTab === 'liked' ? `⭐ Liked: ${lib.liked.length}` : `👎 Disliked: ${lib.disliked.length}`;
-            
+            document.getElementById('library-stats').textContent = activeTab === 'liked' ? `✔️ Liked: ${lib.liked.length}` : `❌ Disliked: ${lib.disliked.length}`;
             if (currentList.length === 0) {
                 document.getElementById('library-list').innerHTML = '';
                 document.getElementById('library-empty').style.display = 'block';
@@ -6687,7 +6679,6 @@ youth orchestra`;
                     return `<div class="genre-item"><span>${item.genre} <small style="color:#666">${date}</small></span><div><a href="https://www.last.fm/tag/${encodeURIComponent(item.genre)}" target="_blank">🔴</a> <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🟢</a> <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a> <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
                 }).join('');
             }
-            
             if (currentGenre) {
                 const libNow = getLibrary();
                 const inLiked = libNow.liked.find(item => item.genre === currentGenre);
@@ -6698,12 +6689,10 @@ youth orchestra`;
                 }
             }
         }
-        
         function toggleLibrary() {
             document.getElementById('library-panel').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('show');
         }
-        
         function showToast(msg) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -6711,7 +6700,6 @@ youth orchestra`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
         }
-        
         function searchGenres() {
             const query = document.getElementById('library-search').value.trim().toLowerCase();
             const resultsDiv = document.getElementById('search-results');
@@ -6721,16 +6709,14 @@ youth orchestra`;
             resultsDiv.innerHTML = matches.map(g => {
                 const inLiked = lib.liked.find(item => item.genre === g);
                 const inDisliked = lib.disliked.find(item => item.genre === g);
-                if (inLiked) return `<div class="search-result-item"><span>${g}</span><span class="already">⭐</span></div>`;
-                if (inDisliked) return `<div class="search-result-item"><span>${g}</span><span class="already">👎</span></div>`;
-                return `<div class="search-result-item"><span>${g}</span><div><button class="add-btn like" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'like'); searchGenres();">⭐</button><button class="add-btn dislike" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'dislike'); searchGenres();">👎</button></div></div>`;
+                if (inLiked) return `<div class="search-result-item"><span>${g}</span><span class="already">✔️</span></div>`;
+                if (inDisliked) return `<div class="search-result-item"><span>${g}</span><span class="already">❌</span></div>`;
+                return `<div class="search-result-item"><span>${g}</span><div><button class="add-btn like" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'like'); searchGenres();">✔️</button><button class="add-btn dislike" onclick="addToCollection('${g.replace(/'/g, "\\'")}', 'dislike'); searchGenres();">👎</button></div></div>`;
             }).join('');
             if (matches.length === 0) resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Nothing found</div>';
         }
-        
         updateLibraryUI();
 
-        // === ЕЖЕДНЕВНЫЙ ЖАНР ===
         function getDailyGenre() {
             const today = new Date().toDateString();
             const stored = localStorage.getItem('dailyGenre');
@@ -6743,7 +6729,7 @@ youth orchestra`;
         (function() {
             const dailyGenre = getDailyGenre();
             const dailySlug = dailyGenre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-            document.getElementById('daily').innerHTML = `<div class="label">📅 GENRE OF THE DAY</div><div class="daily-genre">${dailyGenre.toUpperCase()}</div><div style="margin-top:4px;font-size:13px;display:flex;gap:12px;justify-content:center;"><a href="https://www.last.fm/tag/${encodeURIComponent(dailyGenre)}" target="_blank" style="color:#d51007;">Last.fm</a><a href="https://open.spotify.com/search/${encodeURIComponent(dailyGenre)}" target="_blank" style="color:#1DB954;">Spotify</a><a href="https://everynoise.com/engenremap-${dailySlug}.html" target="_blank" style="color:#3498db;">EveryNoise</a></div>`;
+            document.getElementById('daily').innerHTML = `<div class="label">📅 GENRE OF THE DAY</div><div class="daily-genre">${dailyGenre.toUpperCase()}</div><div style="margin-top:4px;font-size:13px;display:flex;gap:12px;justify-content:center;"><a href="https://www.last.fm/tag/${encodeURIComponent(dailyGenre)}" target="_blank" style="color:rgba(213,16,7,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">Last.fm</a><a href="https://open.spotify.com/search/${encodeURIComponent(dailyGenre)}" target="_blank" style="color:rgba(29,185,84,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">Spotify</a><a href="https://everynoise.com/engenremap-${dailySlug}.html" target="_blank" style="color:rgba(52,152,219,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">EveryNoise</a></div>`;
         })();
 
         function launchConfetti() {
@@ -6764,7 +6750,6 @@ youth orchestra`;
             }
         }
 
-        // === LAST.FM ===
         async function getLastfmDescription(genre) {
             try {
                 const r = await fetch(`https://ws.audioscrobbler.com/2.0/?method=tag.getinfo&tag=${encodeURIComponent(genre)}&api_key=2b75dcb1b4b04c6f8e7a5f3c9d1e0b2a&format=json`);
@@ -6780,7 +6765,6 @@ youth orchestra`;
             } catch(e) { return ''; }
         }
 
-        // === РУЛЕТКА ===
         let isSpinning = false;
 
         async function getGenre() {
@@ -6795,7 +6779,7 @@ youth orchestra`;
             
             sourceElement.innerHTML = '';
             descElement.innerHTML = '';
-            genreElement.onclick = null;
+            genreElement.onclick = () => getGenre();
             likeBtn.classList.remove('show');
             dislikeBtn.classList.remove('show');
             
@@ -6852,8 +6836,10 @@ youth orchestra`;
                         
                         slotContainer.remove();
                         genreElement.style.display = 'inline-block';
-                        genreElement.innerHTML = `<a href="${lastfmUrl}" target="_blank">${currentGenre}</a>`;
-                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:#d51007;">Last.fm</a> · <a href="${spotifyUrl}" target="_blank" style="color:#1DB954;">Spotify</a> · <a href="${everynoiseUrl}" target="_blank" style="color:#3498db;">EveryNoise</a>`;
+                        genreElement.innerHTML = `<div style="font-size:12px;color:#b39ddb;margin-bottom:8px;">CLICK TO SPIN AGAIN</div>${currentGenre}`;
+                        genreElement.onclick = () => getGenre();
+                        genreElement.style.cursor = 'pointer';
+                        sourceElement.innerHTML = `<a href="${lastfmUrl}" target="_blank" style="color:rgba(213,16,7,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">Last.fm</a> · <a href="${spotifyUrl}" target="_blank" style="color:rgba(29,185,84,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">Spotify</a> · <a href="${everynoiseUrl}" target="_blank" style="color:rgba(52,152,219,0.7);text-shadow:0 0 1px rgba(0,0,0,0.5);">EveryNoise</a>`;
                         
                         const lib = getLibrary();
                         if (!lib.liked.find(item => item.genre === currentGenre) && !lib.disliked.find(item => item.genre === currentGenre)) {
@@ -6867,15 +6853,7 @@ youth orchestra`;
                         const desc = await getLastfmDescription(currentGenre);
                         descElement.textContent = desc || '';
                         
-                        genreElement.style.transition = 'all 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
-                        genreElement.style.transform = 'scale(1.1)';
-                        genreElement.style.background = '#0f3460';
-                        genreElement.querySelector('a').style.color = 'white';
-                        setTimeout(() => { genreElement.style.transform = 'scale(1)'; genreElement.style.background = 'white'; genreElement.querySelector('a').style.color = '#0f3460'; }, 400);
-                        setTimeout(() => { genreElement.style.transition = 'all 0.1s ease'; }, 800);
-                        
                         isSpinning = false;
-                        document.getElementById('lucky-btn').style.display = 'inline-block';
                     }, 800);
                 }
             }
