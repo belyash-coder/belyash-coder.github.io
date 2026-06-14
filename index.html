@@ -98,7 +98,7 @@
         .like-btn.show, .dislike-btn.show { display: inline-block; }
 
         #library-toggle {
-            position: fixed; top: 15px; right: 15px; z-index: 200;
+            position: fixed; top: 15px; right: 15px; z-index: 130;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: white; padding: 10px 18px; border-radius: 25px;
             cursor: pointer; font-size: 14px; transition: 0.3s;
@@ -106,7 +106,7 @@
         #library-toggle:hover { background: rgba(255,255,255,0.2); }
         #library-panel {
             position: fixed; right: -380px; top: 0; width: 350px; height: 100vh;
-            background: #16213e; z-index: 150; transition: right 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            background: #16213e; z-index: 160;
             padding: 20px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.5);
         }
         #library-panel.open { right: 0; }
@@ -123,8 +123,9 @@
         #library-panel .genre-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 10px; margin: 5px 0; background: rgba(255,255,255,0.05);
-            border-radius: 8px; font-size: 14px;
+            border-radius: 8px; font-size: 14px; cursor: pointer;
         }
+        #library-panel .genre-item:hover { background: rgba(255,255,255,0.1); }
         #library-panel .genre-item a { color: #3498db; text-decoration: none; font-size: 12px; }
         #library-panel .genre-item a:hover { text-decoration: underline; }
         #library-panel .remove-btn {
@@ -141,16 +142,52 @@
         }
         #overlay.show { display: block; }
 
-        .filter-toggle {
-            position: fixed; top: 15px; left: 15px; z-index: 200;
+        /* Модальное окно */
+        #genre-modal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 400;
+            justify-content: center; align-items: center;
+        }
+        #genre-modal.show { display: flex; }
+        #genre-modal .modal-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+        }
+        #genre-modal .modal-card {
+            position: relative; z-index: 1;
+            background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px; padding: 30px; text-align: center;
+            max-width: 400px; width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        #genre-modal .modal-genre {
+            font-size: 28px; font-weight: 600; margin-bottom: 15px;
+        }
+        #genre-modal .modal-links {
+            display: flex; gap: 12px; justify-content: center; margin-bottom: 20px;
+        }
+        #genre-modal .modal-links a {
+            font-size: 14px; text-decoration: none;
+        }
+        #genre-modal .modal-actions {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;
+        }
+        #genre-modal .modal-close {
+            background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 25px; border-radius: 25px; cursor: pointer; font-size: 14px; transition: 0.3s;
+        }
+        #genre-modal .modal-close:hover { background: rgba(255,255,255,0.2); }
+
+                .filter-toggle {
+            position: fixed; top: 15px; left: 15px; z-index: 130;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: white; padding: 10px 18px; border-radius: 25px;
             cursor: pointer; font-size: 14px; transition: 0.3s;
         }
         .filter-toggle:hover { background: rgba(255,255,255,0.2); }
-        .filter-panel {
+                .filter-panel {
             position: fixed; left: -320px; top: 0; width: 300px; height: 100vh;
-            background: #16213e; z-index: 150; transition: left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            background: #16213e; z-index: 160; transition: left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
             padding: 20px; overflow-y: auto; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
         }
         .filter-panel.open { left: 0; }
@@ -177,7 +214,7 @@
         }
         @keyframes fall { to { top: 110vh; transform: rotate(720deg); } }
 
-                .toast {
+        .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: rgba(46, 204, 113, 0.25);
             backdrop-filter: blur(8px);
@@ -240,6 +277,20 @@
         <div id="library-stats"></div>
         <div id="library-list"></div>
         <div id="library-empty">Empty. Spin the wheel and rate genres!</div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="genre-modal">
+        <div class="modal-bg" onclick="closeModal()"></div>
+        <div class="modal-card">
+            <div class="modal-genre" id="modal-genre-name"></div>
+            <div class="modal-links" id="modal-genre-links"></div>
+            <div class="modal-actions">
+                <button class="like-btn" style="display:inline-block;" id="modal-like-btn">✔️</button>
+                <button class="dislike-btn" style="display:inline-block;" id="modal-dislike-btn">❌</button>
+            </div>
+            <button class="modal-close" onclick="closeModal()">Close</button>
+        </div>
     </div>
 
     <div class="container">
@@ -6676,8 +6727,7 @@ youth orchestra`;
                 document.getElementById('library-list').innerHTML = currentList.slice().reverse().map(item => {
                     const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                     const date = new Date(item.date).toLocaleDateString('ru-RU');
-                    return `<div class="genre-item"><span>${item.genre} <small style="color:#666">${date}</small></span><div><a href="https://www.last.fm/tag/${encodeURIComponent(item.genre)}" target="_blank">🔴</a> <a href="https://open.spotify.com/search/${encodeURIComponent(item.genre)}" target="_blank">🟢</a> <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank">🔗</a> <button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
-                }).join('');
+return `<div class="genre-item" onclick="openModal('${item.genre.replace(/'/g, "\\'")}')"><span>${item.genre} <small style="color:#666">${date}</small></span><div><button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;                }).join('');
             }
             if (currentGenre) {
                 const libNow = getLibrary();
@@ -6716,6 +6766,32 @@ youth orchestra`;
             if (matches.length === 0) resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Nothing found</div>';
         }
         updateLibraryUI();
+
+        // === МОДАЛЬНОЕ ОКНО ===
+        let modalGenre = null;
+        function openModal(genre) {
+            modalGenre = genre;
+            const slug = genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            document.getElementById('modal-genre-name').textContent = genre;
+            document.getElementById('modal-genre-links').innerHTML = `
+                <a href="https://www.last.fm/tag/${encodeURIComponent(genre)}" target="_blank" style="color:rgba(213,16,7,0.7);">Last.fm</a>
+                <a href="https://open.spotify.com/search/${encodeURIComponent(genre)}" target="_blank" style="color:rgba(29,185,84,0.7);">Spotify</a>
+                <a href="https://everynoise.com/engenremap-${slug}.html" target="_blank" style="color:rgba(52,152,219,0.7);">EveryNoise</a>
+            `;
+            const lib = getLibrary();
+            const inLiked = lib.liked.find(item => item.genre === genre);
+            const inDisliked = lib.disliked.find(item => item.genre === genre);
+            const modalLike = document.getElementById('modal-like-btn');
+            const modalDislike = document.getElementById('modal-dislike-btn');
+            modalLike.onclick = () => { addToCollection(genre, 'like'); closeModal(); };
+            modalDislike.onclick = () => { addToCollection(genre, 'dislike'); closeModal(); };
+            modalLike.style.opacity = inLiked ? '1' : '0.5';
+            modalDislike.style.opacity = inDisliked ? '1' : '0.5';
+            document.getElementById('genre-modal').classList.add('show');
+        }
+        function closeModal() {
+            document.getElementById('genre-modal').classList.remove('show');
+        }
 
         function getDailyGenre() {
             const today = new Date().toDateString();
