@@ -6627,7 +6627,7 @@ youth orchestra`;
         const auth = firebase.auth();
         let firebaseUserId = null;
 
-                        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 firebaseUserId = user.uid;
                 const btn = document.getElementById('login-btn');
@@ -6714,37 +6714,38 @@ youth orchestra`;
         initFilters();
         document.getElementById('counter').textContent = `Over 6,000 genres`;
 
+        // === БИБЛИОТЕКА + СИНХРОНИЗАЦИЯ ===
         const STORAGE_KEY = 'genreLibraryV2';
+        
         function getLibrary() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
-                let saveLibrary = function(lib) {
+        
+        function saveLibrary(lib) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
-            if (firebaseUserId) {
-                db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true })
-                .then(() => console.log('✅ Saved to Firebase:', lib))
-                .catch((e) => console.log('❌ Firebase save error:', e));
-            } else {
-                console.log('⚠️ Not saved — not authorized');
+            const code = localStorage.getItem('syncCode');
+            if (code) {
+                db.collection("syncCodes").doc(code).set({ library: lib, created: Date.now() }).catch(() => {});
             }
-        };
-        function loadFromCloud() {
-    if (!firebaseUserId) { console.log('⚠️ No userId, skip load'); return; }
-    console.log('📥 Loading from cloud...');
-    db.collection("users").doc(firebaseUserId).get().then((doc) => {
-        console.log('📥 Cloud response:', doc.exists, doc.data());
-        if (doc.exists && doc.data().library) {
-            const cloudLib = doc.data().library;
-            const localLib = getLibrary();
-            const merged = {
-                liked: [...new Set([...cloudLib.liked.map(i => i.genre), ...localLib.liked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
-                disliked: [...new Set([...cloudLib.disliked.map(i => i.genre), ...localLib.disliked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
-            };
-            saveLibrary(merged);
-            updateLibraryUI();
         }
-    }).catch(() => {});
-}
+        
+        function loadFromCloud() {
+            const code = localStorage.getItem('syncCode');
+            if (!code) return;
+            db.collection("syncCodes").doc(code).get().then((doc) => {
+                if (!doc.exists || Date.now() - doc.data().created > 86400000) return;
+                const cloudLib = doc.data().library;
+                const localLib = getLibrary();
+                if (JSON.stringify(cloudLib) !== JSON.stringify(localLib)) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudLib));
+                    updateLibraryUI();
+                }
+            }).catch(() => {});
+        }
+        
+        // Загружаем при старте
+        setTimeout(loadFromCloud, 1000);
+        
         function addToCollection(genre, type) {
             if (!genre) return;
             let lib = getLibrary();
@@ -6757,6 +6758,7 @@ youth orchestra`;
             document.getElementById('dislike-btn').classList.remove('show');
             showToast(type === 'like' ? '✔️ Added to Liked!' : '❌ Added to Disliked');
         }
+        
         function removeFromCollection(genre) {
             let lib = getLibrary();
             lib.liked = lib.liked.filter(item => item.genre !== genre);
@@ -6768,6 +6770,7 @@ youth orchestra`;
                 document.getElementById('dislike-btn').classList.add('show');
             }
         }
+        
         function switchTab(tab) {
             activeTab = tab;
             document.querySelectorAll('.library-tab').forEach(t => {
@@ -6778,7 +6781,8 @@ youth orchestra`;
             activeTabEl.classList.add(tab === 'liked' ? 'liked' : 'disliked');
             updateLibraryUI();
         }
-                function generateSyncCode() {
+        
+        function generateSyncCode() {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             const lib = getLibrary();
             db.collection("syncCodes").doc(code).set({
@@ -6786,7 +6790,6 @@ youth orchestra`;
                 created: Date.now()
             }).then(() => {
                 document.getElementById('sync-input').value = code;
-                // Сохраняем код себе
                 localStorage.setItem('syncCode', code);
                 showToast('Your code: ' + code + ' (auto-sync ON)');
             }).catch(() => {
@@ -6809,7 +6812,6 @@ youth orchestra`;
                 };
                 saveLibrary(merged);
                 updateLibraryUI();
-                // Сохраняем код для автосинхронизации
                 localStorage.setItem('syncCode', code);
                 document.getElementById('sync-input').value = '';
                 showToast('Synced! Auto-sync ON');
@@ -6818,9 +6820,6 @@ youth orchestra`;
             });
         }
 
-        
-
-        // Автосинхронизация при загрузке и после каждого добавления
         function updateLibraryUI() {
             const lib = getLibrary();
             const currentList = activeTab === 'liked' ? lib.liked : lib.disliked;
@@ -6848,10 +6847,12 @@ youth orchestra`;
                 }
             }
         }
+        
         function toggleLibrary() {
             document.getElementById('library-panel').classList.toggle('open');
             document.getElementById('overlay').classList.toggle('show');
         }
+        
         function showToast(msg) {
             const toast = document.createElement('div');
             toast.className = 'toast';
@@ -6859,6 +6860,7 @@ youth orchestra`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
         }
+        
         function searchGenres() {
             const query = document.getElementById('library-search').value.trim().toLowerCase();
             const resultsDiv = document.getElementById('search-results');
@@ -6874,6 +6876,7 @@ youth orchestra`;
             }).join('');
             if (matches.length === 0) resultsDiv.innerHTML = '<div style="color:#666;text-align:center;padding:15px;">Nothing found</div>';
         }
+        
         updateLibraryUI();
 
         // === МОДАЛЬНОЕ ОКНО ===
@@ -6898,6 +6901,7 @@ youth orchestra`;
             modalDislike.style.opacity = inDisliked ? '1' : '0.5';
             document.getElementById('genre-modal').classList.add('show');
         }
+        
         function closeModal() {
             document.getElementById('genre-modal').classList.remove('show');
         }
@@ -6911,6 +6915,7 @@ youth orchestra`;
             localStorage.setItem('dailyGenre', JSON.stringify({ date: today, genre }));
             return genre;
         }
+        
         (function() {
             const dailyGenre = getDailyGenre();
             const dailySlug = dailyGenre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
