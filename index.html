@@ -258,7 +258,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-        <button id="login-btn" onclick="loginWithGoogle()" style="position:fixed;top:55px;left:15px;z-index:200;background:white;color:#1a1a2e;border:none;padding:8px 15px;border-radius:20px;cursor:pointer;font-size:13px;display:none;">🚪 Sign in with Google</button>
+        <button id="login-btn" onclick="loginWithGoogle()" style="position:fixed;top:55px;left:15px;z-index:200;background:white;color:#1a1a2e;border:none;padding:8px 15px;border-radius:20px;cursor:pointer;font-size:13px;display:block;">🚪 Sign in with Google</button>
     <button class="filter-toggle" onclick="toggleFilter()">🎵 Filters</button>
     <button class="filter-toggle" onclick="toggleFilter()">🎵 Filters</button>
     <div id="filter-overlay" onclick="toggleFilter()"></div>
@@ -6627,15 +6627,15 @@ youth orchestra`;
         const auth = firebase.auth();
         let firebaseUserId = null;
 
-                auth.onAuthStateChanged((user) => {
+                        auth.onAuthStateChanged((user) => {
             if (user) {
                 firebaseUserId = user.uid;
                 const btn = document.getElementById('login-btn');
-                if (btn) btn.style.display = 'none';
+                if (btn) {
+                    btn.style.display = 'block';
+                    btn.textContent = user.isAnonymous ? '🚪 Sign in' : '✅ Synced: ' + (user.email || 'Google');
+                }
                 loadFromCloud();
-            } else {
-                const btn = document.getElementById('login-btn');
-                if (btn) btn.style.display = 'block';
             }
         });
 
