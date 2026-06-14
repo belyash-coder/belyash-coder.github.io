@@ -258,7 +258,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
-
+        <button id="login-btn" onclick="loginWithGoogle()" style="position:fixed;top:55px;left:15px;z-index:200;background:white;color:#1a1a2e;border:none;padding:8px 15px;border-radius:20px;cursor:pointer;font-size:13px;display:none;">🚪 Sign in with Google</button>
+    <button class="filter-toggle" onclick="toggleFilter()">🎵 Filters</button>
     <button class="filter-toggle" onclick="toggleFilter()">🎵 Filters</button>
     <div id="filter-overlay" onclick="toggleFilter()"></div>
     <div class="filter-panel" id="filter-panel"><h3>🎵 Categories</h3></div>
