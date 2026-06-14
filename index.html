@@ -142,7 +142,6 @@
         }
         #overlay.show { display: block; }
 
-        /* Модальное окно */
         #genre-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; z-index: 400;
@@ -166,9 +165,7 @@
         #genre-modal .modal-links {
             display: flex; gap: 12px; justify-content: center; margin-bottom: 20px;
         }
-        #genre-modal .modal-links a {
-            font-size: 14px; text-decoration: none;
-        }
+        #genre-modal .modal-links a { font-size: 14px; text-decoration: none; }
         #genre-modal .modal-actions {
             display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;
         }
@@ -178,14 +175,14 @@
         }
         #genre-modal .modal-close:hover { background: rgba(255,255,255,0.2); }
 
-                .filter-toggle {
+        .filter-toggle {
             position: fixed; top: 15px; left: 15px; z-index: 130;
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: white; padding: 10px 18px; border-radius: 25px;
             cursor: pointer; font-size: 14px; transition: 0.3s;
         }
         .filter-toggle:hover { background: rgba(255,255,255,0.2); }
-                .filter-panel {
+        .filter-panel {
             position: fixed; left: -320px; top: 0; width: 300px; height: 100vh;
             background: #16213e; z-index: 160; transition: left 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
             padding: 20px; overflow-y: auto; box-shadow: 5px 0 20px rgba(0,0,0,0.5);
@@ -256,6 +253,9 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -279,7 +279,6 @@
         <div id="library-empty">Empty. Spin the wheel and rate genres!</div>
     </div>
 
-    <!-- Модальное окно -->
     <div id="genre-modal">
         <div class="modal-bg" onclick="closeModal()"></div>
         <div class="modal-card">
@@ -6607,7 +6606,28 @@ youth orchestra`;
         // Разбираем строки в массивы
         
         
-        
+        // === FIREBASE ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyApms5m5o0JPl1Y4Jqubu5NLgQN_KQJa6A",
+            authDomain: "random-genre-e3924.firebaseapp.com",
+            projectId: "random-genre-e3924",
+            storageBucket: "random-genre-e3924.firebasestorage.app",
+            messagingSenderId: "288570895876",
+            appId: "1:288570895876:web:249cc37618866560518f51"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let firebaseUserId = null;
+
+        const auth = firebase.auth();
+auth.signInAnonymously().catch(() => {});
+auth.onAuthStateChanged((user) => {
+            if (user) {
+                firebaseUserId = user.uid;
+                loadFromCloud();
+            }
+        });
+
         const everynoiseGenres = everynoise.split('\n').filter(g => g.trim().length > 0);
         let activeFilter = 'all';
         let filteredGenres = [...everynoiseGenres];
@@ -6679,7 +6699,28 @@ youth orchestra`;
         function getLibrary() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
-        function saveLibrary(lib) { localStorage.setItem(STORAGE_KEY, JSON.stringify(lib)); }
+        function saveLibrary(lib) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
+            if (firebaseUserId) {
+                db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true }).catch(() => {});
+            }
+        }
+        function loadFromCloud() {
+            if (!firebaseUserId) return;
+            db.collection("users").doc(firebaseUserId).get().then((doc) => {
+                if (doc.exists && doc.data().library) {
+                    const cloudLib = doc.data().library;
+                    const localLib = getLibrary();
+                    // Объединяем облачную и локальную коллекции
+                    const merged = {
+                        liked: [...new Set([...cloudLib.liked.map(i => i.genre), ...localLib.liked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
+                        disliked: [...new Set([...cloudLib.disliked.map(i => i.genre), ...localLib.disliked.map(i => i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
+                    };
+                    saveLibrary(merged);
+                    updateLibraryUI();
+                }
+            }).catch(() => {});
+        }
         function addToCollection(genre, type) {
             if (!genre) return;
             let lib = getLibrary();
@@ -6727,7 +6768,8 @@ youth orchestra`;
                 document.getElementById('library-list').innerHTML = currentList.slice().reverse().map(item => {
                     const slug = item.genre.replace(/['']/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                     const date = new Date(item.date).toLocaleDateString('ru-RU');
-return `<div class="genre-item" onclick="openModal('${item.genre.replace(/'/g, "\\'")}')"><span>${item.genre} <small style="color:#666">${date}</small></span><div><button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;                }).join('');
+                    return `<div class="genre-item" onclick="openModal('${item.genre.replace(/'/g, "\\'")}')"><span>${item.genre} <small style="color:#666">${date}</small></span><div><button class="remove-btn" onclick="event.stopPropagation(); removeFromCollection('${item.genre.replace(/'/g, "\\'")}')">✕</button></div></div>`;
+                }).join('');
             }
             if (currentGenre) {
                 const libNow = getLibrary();
