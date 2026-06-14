@@ -6718,16 +6718,16 @@ youth orchestra`;
         function getLibrary() {
             try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"liked":[],"disliked":[]}'); } catch(e) { return {liked:[], disliked:[]}; }
         }
-        function saveLibrary(lib) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
-    if (firebaseUserId) {
-        db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true })
-        .then(() => console.log('✅ Saved to Firebase:', lib))
-        .catch((e) => console.log('❌ Firebase save error:', e));
-    } else {
-        console.log('⚠️ Not saved — not authorized');
-    }
-}
+                let saveLibrary = function(lib) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
+            if (firebaseUserId) {
+                db.collection("users").doc(firebaseUserId).set({ library: lib }, { merge: true })
+                .then(() => console.log('✅ Saved to Firebase:', lib))
+                .catch((e) => console.log('❌ Firebase save error:', e));
+            } else {
+                console.log('⚠️ Not saved — not authorized');
+            }
+        };
         function loadFromCloud() {
     if (!firebaseUserId) { console.log('⚠️ No userId, skip load'); return; }
     console.log('📥 Loading from cloud...');
@@ -6779,27 +6779,28 @@ youth orchestra`;
             updateLibraryUI();
         }
                 function generateSyncCode() {
-            if (!firebaseUserId) { showToast('Not authorized'); return; }
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const lib = getLibrary();
             db.collection("syncCodes").doc(code).set({
-                userId: firebaseUserId,
-                library: getLibrary(),
+                library: lib,
                 created: Date.now()
             }).then(() => {
                 document.getElementById('sync-input').value = code;
-                showToast('Code: ' + code);
+                // Сохраняем код себе
+                localStorage.setItem('syncCode', code);
+                showToast('Your code: ' + code + ' (auto-sync ON)');
+            }).catch(() => {
+                showToast('Error generating code');
             });
         }
 
         function applySyncCode() {
-            if (!firebaseUserId) { showToast('Not authorized'); return; }
             const code = document.getElementById('sync-input').value.trim().toUpperCase();
             if (!code) return;
             db.collection("syncCodes").doc(code).get().then((doc) => {
                 if (!doc.exists) { showToast('Invalid code'); return; }
                 const data = doc.data();
-                if (Date.now() - data.created > 3600000) { showToast('Code expired (1h)'); return; }
-                // Объединяем коллекции
+                if (Date.now() - data.created > 86400000) { showToast('Code expired (24h)'); return; }
                 const remoteLib = data.library;
                 const localLib = getLibrary();
                 const merged = {
@@ -6808,10 +6809,47 @@ youth orchestra`;
                 };
                 saveLibrary(merged);
                 updateLibraryUI();
+                // Сохраняем код для автосинхронизации
+                localStorage.setItem('syncCode', code);
                 document.getElementById('sync-input').value = '';
-                showToast('Synced! ' + merged.liked.length + ' liked');
+                showToast('Synced! Auto-sync ON');
+            }).catch(() => {
+                showToast('Sync failed');
             });
         }
+
+        function autoSync() {
+            const code = localStorage.getItem('syncCode');
+            if (!code) return;
+            db.collection("syncCodes").doc(code).get().then((doc) => {
+                if (!doc.exists || Date.now() - doc.data().created > 86400000) {
+                    localStorage.removeItem('syncCode');
+                    return;
+                }
+                const remoteLib = doc.data().library;
+                const localLib = getLibrary();
+                if (JSON.stringify(remoteLib) === JSON.stringify(localLib)) return;
+                const merged = {
+                    liked: [...new Set([...remoteLib.liked.map(i=>i.genre), ...localLib.liked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() })),
+                    disliked: [...new Set([...remoteLib.disliked.map(i=>i.genre), ...localLib.disliked.map(i=>i.genre)])].map(g => ({ genre: g, date: new Date().toISOString() }))
+                };
+                saveLibrary(merged);
+                updateLibraryUI();
+                // Обновляем код в облаке
+                db.collection("syncCodes").doc(code).set({
+                    library: merged,
+                    created: Date.now()
+                }, { merge: true });
+            }).catch(() => {});
+        }
+
+        // Автосинхронизация при загрузке и после каждого добавления
+        setTimeout(autoSync, 2000);
+        const origSaveLibrary = saveLibrary;
+        saveLibrary = function(lib) {
+            origSaveLibrary(lib);
+            setTimeout(autoSync, 500);
+        };
         function updateLibraryUI() {
             const lib = getLibrary();
             const currentList = activeTab === 'liked' ? lib.liked : lib.disliked;
