@@ -4,16 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random Music Genre</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <body>
+    <div class="splash-screen" id="splashScreen">
+        <h1 class="splash-title">Расширь свои музыкальные границы</h1>
+    </div>
     <header class="top-bar">
-        <button class="icon-btn filter-btn">⚙️</button> 
-        <button class="icon-btn menu-btn">☰</button> 
+        <button class="header-btn" id="filterBtn">
+    <i class="fa-solid fa-sliders"></i> </button> 
+        <button class="header-btn" id="burgerBtn">
+    <i class="fa-solid fa-bars"></i></button>
     </header>
 
     <main class="main-content">
-        <h1 class="main-title">Расширь музыкальные границы</h1>
         <div class="daily-genre-box">
             <span class="daily-label">Жанр дня:</span>
             <span class="daily-value" id="dailyGenre">Загрузка...</span>
@@ -31,25 +42,111 @@
     </main>
 
     <nav class="bottom-nav">
-        <div class="nav-placeholder"></div>
-        <div class="nav-placeholder"></div>
-        <div class="nav-placeholder"></div>
+        <button class="nav-item active" id="navHome">
+            <i class="fa-solid fa-dice-d20"></i>
+            <span>Главная</span>
+        </button>
+        <button class="nav-item" id="navSearch">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Поиск</span>
+        </button>
+        <button class="nav-item" id="navLibrary">
+            <i class="fa-solid fa-heart"></i>
+            <span>Избранное</span>
+        </button>
+        <button class="nav-item" id="navProfile">
+            <i class="fa-solid fa-user"></i>
+            <span>Профиль</span>
+        </button>
     </nav>
     <div class="modal-overlay" id="genreModal">
         <div class="modal-content">
             <button class="close-btn" id="closeModalBtn">&times;</button>
-            <h2 class="modal-title" id="modalGenreTitle">Название</h2>
-            <p class="modal-desc" id="modalGenreDesc">Здесь будет краткое описание жанра. Скоро мы добавим сюда реальные данные.</p>
-            <h3 class="modal-subtitle">Популярные треки:</h3>
-            <ul class="track-list" id="modalTrackList">
-                <li>🎵 Загрузка трека 1...</li>
-                <li>🎵 Загрузка трека 2...</li>
-                <li>🎵 Загрузка трека 3...</li>
-                <li>🎵 Загрузка трека 4...</li>
-                <li>🎵 Загрузка трека 5...</li>
-            </ul>
+            <h2 class="modal-title" id="modalGenreTitle">Название жанра</h2>
+            <div class="genre-description" id="genreDescription"></div>
+
+<!-- <div class="genre-description" id="genreDescription"></div> -->
+
+<div id="spotifyTracksContainer"></div>
+            <div id="spotifyTracksContainer">
+                <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: #8FDDCB; margin-bottom: 10px;"></i>
+                    
+                </div>
+            </div>
+
         </div>
     </div>
+
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar-menu" id="sidebarMenu">
+        <button class="sidebar-close-btn" id="closeSidebarBtn">&times;</button>
+        
+        <div class="sidebar-header">
+            <h3>Настройки</h3>
+        </div>
+        
+        <ul class="sidebar-links">
+            <li>
+                <a href="#" id="menuTheme">
+                    <i class="fa-solid fa-palette"></i> Темы оформления
+                </a>
+            </li>
+            <li>
+                <a href="#" id="menuHistory">
+                    <i class="fa-solid fa-clock-rotate-left"></i> История прокруток
+                </a>
+            </li>
+            <li>
+                <a href="#" id="menuAbout">
+                    <i class="fa-solid fa-circle-info"></i> О проекте
+                </a>
+            </li>
+            <li>
+                <a href="#" id="menuSupport">
+                    <i class="fa-solid fa-envelope"></i> Поддержка
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-auth-btn" id="sidebarAuthBtn">
+                <i class="fa-solid fa-right-to-bracket"></i> Войти в аккаунт
+            </button>
+        </div>
+    </div>
+    <div class="modal-overlay" id="filterModal">
+        <div class="modal-content">
+            <h2 class="modal-title" style="color: #B57EDC; margin-bottom: 10px;">Фильтры</h2>
+            
+            <h3 style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Музыкальное направление</h3>
+            <div class="filter-grid" style="margin-bottom: 25px;">
+                <button class="filter-chip active" data-filter="all">Все стили</button>
+                <button class="filter-chip" data-filter="rock">Рок и Метал</button>
+                <button class="filter-chip" data-filter="pop">Поп-музыка</button>
+                <button class="filter-chip" data-filter="electronic">Электроника</button>
+                <button class="filter-chip" data-filter="hiphop">Хип-хоп и Рэп</button>
+                <button class="filter-chip" data-filter="jazz">Джаз и Блюз</button>
+            </div>
+
+           <h3 style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Регион</h3>
+            <div class="filter-grid">
+                <button class="region-chip active" data-region="all">Весь мир</button>
+                <button class="region-chip" data-region="russian">Россия и СНГ</button>
+                <button class="region-chip" data-region="asian">Азия (K-pop, J-Rock)</button>
+                <button class="region-chip" data-region="latin">Латинская Америка</button>
+            </div>
+
+            <button class="apply-filter-btn" id="closeFilterBtn">Применить</button>
+            
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
     <script src="database.js"></script>
     <script src="script.js"></script>

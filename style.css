@@ -5,19 +5,40 @@
     box-sizing: border-box;
 }
 
-/* Общие стили и фон */
-/* Общие стили и фон */
 body {
-    font-family: sans-serif;
-    background: linear-gradient(135deg, #090b14 0%, #102142 100%);
+    font-family: 'Montserrat', sans-serif; /* Применяем новый шрифт ко всему сайту */
+    background: linear-gradient(135deg, #090b14 0%, #131729 100%);
     color: #ffffff;
-    height: 100vh; /* Запасной вариант для старых браузеров */
-    height: 100dvh; /* Динамическая высота: решает проблему уезжающей панели */
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    -webkit-font-smoothing: antialiased; /* Делает шрифты более гладкими на экранах */
 }
 
+/* --- КНОПКИ В ШАПКЕ --- */
+.header-btn {
+    background: rgba(255, 255, 255, 0.05); /* Легкое полупрозрачное стекло */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%; /* Делаем кнопку идеально круглой */
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #E6E6FA; /* Пастельный лавандовый цвет иконки */
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.header-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #8FDDCB; /* При наведении иконка становится мятной */
+    transform: scale(1.05); /* Слегка увеличивается */
+}
 /* Шапка */
 .top-bar {
     display: flex;
@@ -39,43 +60,68 @@ body {
     flex: 1; 
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* Отключаем жесткую центровку, управляем отступами */
+    justify-content: flex-start;
     align-items: center;
     padding: 20px;
-}
-/* Главный заголовок */
-.main-title {
-    font-size: 30px;
-    font-weight: 600;
-    text-align: center;
-    color: #ffffff;
-    margin-top: 10px; /* Подтягиваем ближе к шапке */
-    margin-bottom: auto; /* Резиновый отступ снизу */
-    letter-spacing: 0.5px;
-    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    padding-bottom: 100px; /* Добавили отступ под нижнее меню */
 }
 
 
-/* Нижняя панель навигации */
+/* --- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ --- */
 .bottom-nav {
-    position: fixed; /* Жестко фиксируем на экране */
-    bottom: 0;       /* Прижимаем к самому низу */
-    left: 0;
-    width: 100%;     /* Растягиваем на всю ширину */
+    background: rgba(9, 11, 20, 0.85); /* Темное стекло */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 15px 0;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: calc(15px + env(safe-area-inset-bottom)); /* Учитываем системную полоску на iPhone */
+    padding: 15px 10px 25px; /* Запас снизу для мобильных экранов (челка/свайп) */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
 }
-/* Заглушки для будущих иконок навигации */
-.nav-placeholder {
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+
+.nav-item {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Montserrat', sans-serif;
+    width: 25%; /* Равномерно делим на 4 кнопки */
+}
+
+.nav-item i {
+    font-size: 22px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-item span {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Состояние активной вкладки */
+.nav-item.active {
+    color: #8FDDCB; /* Наш сдержанный мятный */
+}
+
+.nav-item.active i {
+    transform: translateY(-4px); /* Иконка мягко подпрыгивает вверх */
+    text-shadow: 0 0 15px rgba(143, 221, 203, 0.5); /* Легкое свечение */
+}
+
+/* Эффект при наведении на неактивные вкладки (только для ПК) */
+.nav-item:hover:not(.active) {
+    color: #E6E6FA; /* Пастельный лавандовый */
 }
 
 /* --- ЖАНР ДНЯ --- */
@@ -233,18 +279,16 @@ body {
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 30px 20px;
+    background: rgba(19, 23, 41, 0.85);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 30px 24px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    max-width: 460px; /* Оптимальная ширина для плееров */
     position: relative;
-    transform: translateY(20px); /* Слегка опущено вниз для анимации появления */
-    transition: transform 0.3s ease;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 .modal-overlay.active .modal-content {
@@ -316,4 +360,492 @@ body {
 /* Класс для плавного появления */
 .or-divider.show {
     opacity: 1;
+}
+/* --- ЗАСТАВКА (SPLASH SCREEN) --- */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #090b14 0%, #131729 100%); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; 
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s ease;
+}
+
+.splash-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Анимация текста на заставке */
+.splash-title {
+    font-size: 26px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.5px;
+    padding: 0 20px;
+    opacity: 0; /* Скрыт по умолчанию */
+    /* Единая анимация на 3.5 секунды, которая управляет всем процессом */
+    animation: splashSequence 3.5s ease forwards;
+}
+
+/* Сценарий анимации текста */
+@keyframes splashSequence {
+    0% {
+        opacity: 0;
+        transform: scale(0.96);
+        color: #ffffff;
+        text-shadow: 0 4px 20px rgba(181, 126, 220, 0);
+    }
+    20% {
+        /* Фаза 1: Текст плавно проявился (белый с лавандовым свечением) */
+        opacity: 1; 
+        transform: scale(1);
+        color: #ffffff;
+        text-shadow: 0 4px 20px rgba(181, 126, 220, 0.6); 
+    }
+    60% {
+        /* Фаза 2: Сменил оттенок на мятный и слегка приблизился */
+        opacity: 1;
+        transform: scale(1.02); 
+        color: #8FDDCB; 
+        text-shadow: 0 4px 20px rgba(143, 221, 203, 0.6); 
+    }
+    90%, 100% {
+        /* Фаза 3: Плавно исчез во тьму */
+        opacity: 0; 
+        transform: scale(1.05);
+        color: #8FDDCB;
+        text-shadow: 0 4px 20px rgba(143, 221, 203, 0);
+    }
+}
+/* --- БОКОВОЕ БУРГЕР-МЕНЮ --- */
+
+/* Темная вуаль, которая плавно закрывает остальной экран */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(9, 11, 20, 0.4);
+    backdrop-filter: blur(0px); /* Начинаем без размытия */
+    -webkit-backdrop-filter: blur(0px);
+    z-index: 900;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease, backdrop-filter 0.4s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Само выезжающее меню */
+.sidebar-menu {
+    position: fixed;
+    top: 0;
+    right: 0; /* Обязательно right, а не left */
+    width: 280px;
+    height: 100%;
+    background: rgba(19, 23, 41, 0.85); 
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-left: 1px solid rgba(255, 255, 255, 0.05); 
+    z-index: 1000; 
+    transform: translateX(100%); /* Плюс 100%, без минуса */
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 60px 24px 30px;
+}
+
+.sidebar-menu.active {
+    transform: translateX(0); /* Выезжает на экран */
+}
+
+/* Кнопка закрытия (крестик) */
+.sidebar-close-btn {
+    position: absolute;
+    top: 15px;
+    left: 20px; /* ПЕРЕНЕСЛИ НАЛЕВО (было right: 20px) */
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 32px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.sidebar-close-btn:hover {
+    color: #ffffff;
+}
+
+.sidebar-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 15px;
+}
+
+/* Список ссылок */
+.sidebar-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1; /* Занимает всё свободное место, толкая футер вниз */
+}
+
+.sidebar-links li a {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 16px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-links li a i {
+    font-size: 18px;
+    color: #B57EDC; /* Лавандовые иконки */
+    width: 24px;
+    text-align: center;
+}
+
+/* Эффект при наведении на пункт меню */
+.sidebar-links li a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #8FDDCB; /* Текст меняется на мятный */
+}
+
+.sidebar-links li a:hover i {
+    color: #8FDDCB; /* Иконка тоже становится мятной */
+}
+
+/* Нижняя часть меню (Футер) */
+.sidebar-footer {
+    margin-top: auto;
+}
+
+.sidebar-auth-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.sidebar-auth-btn:hover {
+    background: rgba(143, 221, 203, 0.1);
+    border-color: rgba(143, 221, 203, 0.3);
+    color: #8FDDCB;
+}
+/* --- СЕТКА ФИЛЬТРОВ --- */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Две колонки */
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* Кнопки-чипсы для выбора жанра */
+/* Кнопки-чипсы для выбора жанра и региона */
+.filter-chip, .region-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.filter-chip:hover, .region-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* Стили для выбранного фильтра */
+.filter-chip.active, .region-chip.active {
+    background: rgba(143, 221, 203, 0.1);
+    border-color: #8FDDCB;
+    color: #8FDDCB;
+    box-shadow: 0 0 15px rgba(143, 221, 203, 0.2);
+}
+/* --- КНОПКА ПРИМЕНЕНИЯ ФИЛЬТРОВ --- */
+.apply-filter-btn {
+    width: 100%;
+    background: rgba(143, 221, 203, 0.15); /* Полупрозрачный мятный */
+    border: 1px solid rgba(143, 221, 203, 0.4);
+    border-radius: 14px;
+    color: #8FDDCB; /* Текст в цвет акцента */
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px;
+    margin-top: 25px; /* Отступ от сетки регионов */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Эффект при наведении/нажатии */
+.apply-filter-btn:hover,
+.apply-filter-btn:active {
+    background: #8FDDCB; /* Заливаем плотным мятным */
+    color: #090b14;      /* Текст становится темным (цвет фона приложения) */
+    box-shadow: 0 4px 15px rgba(143, 221, 203, 0.4); /* Мягкое свечение */
+}
+/* --- СПИСОК ТРЕКОВ SPOTIFY --- */
+.track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    max-height: 50vh; /* Ограничиваем высоту, чтобы окно не вылезало за экран */
+    overflow-y: auto; /* Добавляем внутреннюю прокрутку */
+    padding-right: 5px;
+}
+
+/* Стилизация скроллбара под наш дизайн */
+.track-list::-webkit-scrollbar {
+    width: 6px;
+}
+.track-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+.track-list::-webkit-scrollbar-thumb {
+    background: rgba(143, 221, 203, 0.5); /* Полупрозрачный мятный */
+    border-radius: 10px;
+}
+
+.track-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.03); /* Матовое стекло */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.track-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.track-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.track-cover-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.track-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0; /* Не дает тексту выломать границы флекса */
+}
+
+.track-name {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Добавляет троеточие длинным названиям */
+    transition: color 0.2s;
+}
+
+/* Ссылка на Spotify при наведении светится мятным */
+.track-name:hover {
+    color: #8FDDCB; 
+}
+
+.track-artist {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Стандартный аудиоплеер браузера */
+.track-audio {
+    width: 100%;
+    height: 30px;
+    margin-top: 6px;
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.track-audio:hover {
+    opacity: 1;
+}
+
+/* Стили для браузеров на базе Chrome/Safari (затемняем стандартный белый плеер) */
+.track-audio::-webkit-media-controls-panel {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.no-preview {
+    font-size: 11px;
+    color: #B57EDC; /* Лавандовый акцент */
+    margin-top: 6px;
+    font-weight: 600;
+}
+/* --- СТИЛИЗАЦИЯ НОВОГО ПЛЕЙЛИСТА SPOTIFY --- */
+
+/* Контейнер для списка виджетов */
+.spotify-embed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Комфортное расстояние между плеерами */
+    margin-top: 20px;
+    max-height: 60vh; /* Ограничиваем по высоте для мобильных экранов */
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Настройка скроллбара, чтобы он не выбивался из визуала */
+.spotify-embed-list::-webkit-scrollbar {
+    width: 5px;
+}
+.spotify-embed-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
+.spotify-embed-list::-webkit-scrollbar-thumb {
+    background: rgba(143, 221, 203, 0.3); /* Тонкий мятный ползунок */
+    border-radius: 10px;
+}
+
+/* Обертка для каждого iframe */
+/* --- СТИЛИЗАЦИЯ И СЛУЖЕБНЫЕ АНИМАЦИИ ПЛЕЙЛИСТА --- */
+
+.spotify-embed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Обертка для каждого iframe */
+.spotify-embed-item {
+    width: 100%;
+    height: 82px; /* Чуть больше, чтобы скрыть лишние пиксели Spotify */
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden; /* Скрываем всё, что вылезает */
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* По умолчанию сам iframe скрыт */
+.spotify-embed-item iframe {
+    display: block;
+    width: 100%;
+    height: 100%; /* Заставляем iframe подстроиться под обертку */
+    border: none;
+    opacity: 0;
+    transition: opacity 0.4s ease; 
+}
+
+/* Когда iframe полностью загрузился и класс .loading удален, плавно проявляем его */
+.spotify-embed-item:not(.loading) iframe {
+    opacity: 1;
+}
+
+/* ЭФФЕКТ СКЕЛЕТОНА: Пульсирующий блик, пока плеер грузится */
+.spotify-embed-item.loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.02) 25%, 
+        rgba(255, 255, 255, 0.07) 50%, 
+        rgba(255, 255, 255, 0.02) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s infinite linear;
+}
+
+@keyframes skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+/* --- БЛОК ОПИСАНИЯ ЖАНРА --- */
+.genre-description {
+    background: rgba(181, 126, 220, 0.05);
+    border-left: 3px solid #B57EDC;
+    border-radius: 4px 12px 12px 4px;
+    padding: 12px 16px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 20px;
 }
