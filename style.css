@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+
 /* Сброс базовых отступов */
 * {
     margin: 0;
@@ -6,13 +8,19 @@
 }
 
 body {
-    font-family: 'Montserrat', sans-serif; /* Применяем новый шрифт ко всему сайту */
-    background: linear-gradient(135deg, #090b14 0%, #131729 100%);
+    font-family: 'Montserrat', sans-serif;
+    
+    /* Сначала идет SVG-шум (он полупрозрачный), а под ним — твой холодный полуночный градиент */
+    background: 
+        url('data:image/svg+xml;utf8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.04%22/%3E%3C/svg%3E'),
+        linear-gradient(135deg, #090b14 0%, #131729 100%);
+    
     color: #ffffff;
-    height: 100vh;
+    min-height: 100vh; /* Поменял height на min-height, чтобы на маленьких экранах фон не обрезался */
     display: flex;
     flex-direction: column;
-    -webkit-font-smoothing: antialiased; /* Делает шрифты более гладкими на экранах */
+    -webkit-font-smoothing: antialiased;
+    margin: 0; /* Убираем белые рамки по краям экрана, которые браузер ставит по умолчанию */
 }
 
 /* --- КНОПКИ В ШАПКЕ --- */
@@ -57,13 +65,11 @@ body {
 
 /* Центральная часть (занимает всё свободное место) */
 .main-content {
-    flex: 1; 
+    flex-grow: 1; 
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 20px;
-    padding-bottom: 100px; /* Добавили отступ под нижнее меню */
+    position: relative;
+    width: 100%;
 }
 
 
@@ -157,25 +163,31 @@ body {
 /* --- СТИЛИ РУЛЕТКИ И ГЛАССМОРФИЗМ --- */
 
 .roulette-box {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(10, 10, 15, 0.6); /* Более глубокий полуночный фон для контраста */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(168, 159, 205, 0.2); /* Тонкая лавандовая окантовка */
     border-radius: 24px;
     padding: 20px;
     width: 90%;
     max-width: 350px;
     text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    margin-top: auto; /* Забирает пространство над рулеткой */
-    margin-bottom: 30px; /* Жесткий отступ до кнопки */
+    /* Эффект прорези: мощная внутренняя тень создает аналоговую глубину */
+    box-shadow: 
+        inset 0 10px 25px rgba(0, 0, 0, 0.7),
+        0 15px 35px rgba(0, 0, 0, 0.4);
+    margin-top: auto; 
+    margin-bottom: 30px; 
 }
 
 /* Окно, в котором виден ровно один жанр */
 .roulette-window {
-    height: 120px; /* Увеличили высоту для длинных жанров и запаса под анимацию */
+    height: 120px; 
     overflow: hidden;
     position: relative;
+    /* Изящный трюк: маскируем верхний и нижний края, чтобы текст плавно растворялся, как на настоящем барабане */
+    mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
 }
 
 /* Лента, которая будет ползти вверх */
@@ -186,16 +198,17 @@ body {
 
 /* Отдельная строчка с жанром */
 .genre-item {
-    height: 120px; /* Должна строго совпадать с высотой окна */
+    height: 120px; 
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 30px; /* Слегка уменьшили, чтобы 3 строчки сидели идеально */
-    font-weight: 600;
-    color: #E6E6FA;
+    font-size: 30px; 
+    font-weight: 800; /* Делаем шрифт плотнее для солидности */
+    color: rgba(168, 159, 205, 0.35); /* Приглушенный лавандовый, пока крутится */
     text-transform: capitalize;
-    text-align: center; /* Центрируем текст по горизонтали, если он переносится */
-    padding: 0 15px; /* Отступы по бокам, чтобы текст не прижимался к краям плашки */
+    text-align: center; 
+    padding: 0 15px; 
+    transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 /* Кнопка с лавандово-мятным градиентом */
@@ -208,16 +221,26 @@ body {
     border-radius: 30px;
     padding: 16px 40px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(152, 255, 152, 0.2);
-    transition: transform 0.2s ease, opacity 0.2s ease;
-    margin-bottom: 22vh; /* Сильнее толкаем снизу, чтобы поднять всю группу элементов повыше */
+    /* Мятное аналоговое свечение, отбрасываемое от кнопки */
+    box-shadow: 0 6px 20px rgba(152, 255, 152, 0.25), inset 0 -2px 5px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 22vh; 
+}
+
+.spin-btn:hover {
+    box-shadow: 0 8px 25px rgba(152, 255, 152, 0.4), inset 0 -2px 5px rgba(0, 0, 0, 0.15);
 }
 
 .spin-btn:active {
     transform: scale(0.95);
+    box-shadow: 0 2px 10px rgba(152, 255, 152, 0.2);
 }
+
 /* Эффект при выпадении жанра */
 .highlight-result {
+    color: #ffffff;
+    /* Зажигаем мятный неон на победителе */
+    text-shadow: 0 0 15px rgba(152, 255, 152, 0.6), 0 0 30px rgba(152, 255, 152, 0.2); 
     animation: popBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
@@ -289,6 +312,7 @@ body {
     max-width: 460px; /* Оптимальная ширина для плееров */
     position: relative;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    transform: translateY(20px);
 }
 
 .modal-overlay.active .modal-content {
@@ -848,4 +872,1479 @@ body {
     font-size: 13px;
     line-height: 1.5;
     margin-bottom: 20px;
+}
+/* ==========================================
+   КАРТОЧКИ ТРЕКОВ (С ОБЛОЖКАМИ И АНИМАЦИЕЙ)
+   ========================================== */
+.track-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(20, 20, 25, 0.6);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 12px;
+    padding: 12px 15px; /* Чуть уменьшили отступы, так как появилась картинка */
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.track-card:hover {
+    background: rgba(30, 30, 35, 0.8);
+    border-color: #98ff98;
+    box-shadow: 0 0 15px rgba(152, 255, 152, 0.1);
+}
+
+/* Новое: Контейнер для левой части (обложка + текст) */
+.track-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    overflow: hidden;
+}
+
+/* Новое: Квадрат обложки */
+.track-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    background: rgba(168, 159, 205, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.track-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cover-placeholder {
+    color: #a89fcd;
+    font-size: 1.2rem;
+}
+
+.track-card:hover .track-cover {
+    border-color: rgba(152, 255, 152, 0.5);
+    box-shadow: 0 0 12px rgba(152, 255, 152, 0.2);
+}
+
+.track-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.track-title {
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-artist {
+    color: #a89fcd;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.play-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(152, 255, 152, 0.1);
+    color: #98ff98;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.track-card:hover .play-btn {
+    background: #98ff98;
+    color: #141419;
+    transform: scale(1.05);
+}
+/* ==========================================
+   АВТОРИЗАЦИЯ И МОДАЛЬНЫЕ ОКНА
+   ========================================== */
+.glass-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 10, 15, 0.7); /* Мягкое затемнение фона */
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0; /* Для плавной анимации появления */
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* Класс для вызова окна через JavaScript */
+.glass-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-content {
+    background: rgba(20, 20, 25, 0.6);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 20px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(181, 108, 226, 0.05);
+    text-align: center;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.glass-modal.active .modal-content {
+    transform: translateY(0);
+}
+
+.modal-title {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+}
+
+.input-group {
+    margin-bottom: 25px;
+    position: relative;
+}
+
+.custom-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(168, 159, 205, 0.4); /* Лавандовая линия */
+    color: #ffffff;
+    font-size: 16px;
+    font-family: 'Montserrat', sans-serif;
+    padding: 10px 5px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Аналоговое свечение при вводе текста */
+.custom-input:focus {
+    border-bottom-color: #98FF98; 
+    box-shadow: 0 10px 10px -10px rgba(152, 255, 152, 0.4);
+}
+
+.custom-input::placeholder {
+    color: rgba(168, 159, 205, 0.5);
+}
+
+.auth-btn {
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.auth-switch {
+    color: rgba(168, 159, 205, 0.7);
+    font-size: 14px;
+}
+
+.auth-switch span {
+    color: #98FF98;
+    cursor: pointer;
+    font-weight: 600;
+    transition: text-shadow 0.3s ease;
+}
+
+.auth-switch span:hover {
+    text-shadow: 0 0 10px rgba(152, 255, 152, 0.6);
+}
+/* ==========================================
+   БОКОВОЕ МЕНЮ НАСТРОЕК (ШТОРКА)
+   ========================================== */
+.settings-trigger-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    filter: grayscale(100%) brightness(200%); /* Делает эмодзи белым/серебристым */
+    opacity: 0.7;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 100;
+}
+
+.settings-trigger-btn:hover {
+    opacity: 1;
+    transform: rotate(90deg); /* Легкая анимация шестеренки при наведении */
+}
+
+/* Сама стеклянная панель */
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: -100%; /* Спрятано за правым краем экрана */
+    width: 100%;
+    max-width: 350px;
+    height: 100vh;
+    background: rgba(10, 10, 15, 0.85); /* Глубокий черный */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-left: 1px solid rgba(168, 159, 205, 0.2); /* Лавандовая граница */
+    z-index: 2000;
+    /* Плавный, физичный отскок при выезде */
+    transition: right 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.side-menu.active {
+    right: 0; /* Меню выезжает на экран */
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    border-bottom: 1px solid rgba(168, 159, 205, 0.1);
+    padding-bottom: 15px;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    color: #ffffff;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(168, 159, 205, 0.6);
+    font-size: 2.5rem;
+    cursor: pointer;
+    transition: color 0.3s ease, transform 0.3s ease;
+    line-height: 0.5;
+}
+
+.close-btn:hover {
+    color: #98ff98; /* Загорается мятным */
+    transform: scale(1.1);
+}
+
+/* --- Дизайн пунктов меню и тумблеров --- */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.setting-label {
+    color: #a89fcd;
+    font-size: 1rem;
+}
+
+/* Аналоговый тумблер */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 34px;
+    transition: .4s;
+    border: 1px solid rgba(168, 159, 205, 0.2);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: rgba(168, 159, 205, 0.5); /* Выключенный тумблер */
+    border-radius: 50%;
+    transition: .4s;
+}
+
+/* Когда переключатель включен */
+input:checked + .slider {
+    background-color: rgba(152, 255, 152, 0.1);
+    border-color: #98ff98;
+}
+
+input:checked + .slider:before {
+    transform: translateX(24px);
+    background-color: #98ff98;
+    box-shadow: 0 0 10px rgba(152, 255, 152, 0.5); /* Мятное свечение ползунка */
+}
+/* ==========================================
+   БОКОВОЕ МЕНЮ (БУРГЕР)
+   ========================================== */
+.sidebar-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: 1500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.sidebar-menu {
+    position: fixed;
+    top: 0; right: -100%; /* Меню прячется справа */
+    width: 80%;
+    max-width: 320px;
+    height: 100vh;
+    background: rgba(20, 20, 25, 0.85); /* Глубокое стекло */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-left: 1px solid rgba(168, 159, 205, 0.2);
+    z-index: 2000;
+    transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 30px 20px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
+}
+
+.sidebar-menu.active {
+    right: 0;
+}
+
+.sidebar-header {
+    position: relative; /* Создаем якорь для крестика */
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(168, 159, 205, 0.1);
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.sidebar-close-btn {
+    position: absolute;
+    top: -12px; /* Оптически выравниваем центр крестика с центром текста */
+    right: 0;    /* Жестко прижимаем к правому краю */
+    background: none;
+    border: none;
+    color: rgba(168, 159, 205, 0.6);
+    font-size: 2.8rem; /* Сделал чуть крупнее для удобства нажатия */
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar-close-btn:hover {
+    color: #98ff98;
+    transform: scale(1.1);
+}
+
+.sidebar-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1; /* Растягивает список, прижимая футер к низу */
+}
+
+.sidebar-links li {
+    margin-bottom: 15px;
+}
+
+.sidebar-links a {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #a89fcd;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-links a i {
+    width: 24px;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.sidebar-links a:hover {
+    background: rgba(152, 255, 152, 0.05);
+    color: #98ff98;
+    box-shadow: inset 2px 0 0 #98ff98; /* Тонкая мятная полоска слева при наведении */
+}
+
+.sidebar-footer {
+    padding-top: 20px;
+    border-top: 1px solid rgba(168, 159, 205, 0.1);
+}
+
+.sidebar-auth-btn {
+    width: 100%;
+    background: rgba(168, 159, 205, 0.1);
+    border: 1px solid rgba(168, 159, 205, 0.3);
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: 'Montserrat', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.sidebar-auth-btn:hover {
+    background: rgba(181, 108, 226, 0.2);
+    border-color: rgba(181, 108, 226, 0.5);
+    box-shadow: 0 0 15px rgba(181, 108, 226, 0.2);
+}
+/* ==========================================
+   ТЕМЫ ОФОРМЛЕНИЯ
+   ========================================== */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.theme-card {
+    background: rgba(20, 20, 25, 0.6);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 12px;
+    padding: 15px 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.theme-card:hover {
+    border-color: rgba(181, 108, 226, 0.5);
+    transform: translateY(-5px);
+}
+
+/* Активная (выбранная) тема */
+.theme-card.active {
+    border-color: #98ff98;
+    box-shadow: 0 0 15px rgba(152, 255, 152, 0.15);
+}
+
+.theme-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+.theme-card span {
+    color: #E6E6FA;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ==========================================
+   ЦВЕТОВЫЕ ТЕМЫ (ОПРЕДЕЛЕНИЯ ФОНОВ И ЦВЕТОВ)
+   ========================================== */
+
+/* 1. Лавандовая тема (Глубокий, роскошный оттенок) */
+/* 1. Лавандовая тема (Светлая, благородная и дышащая) */
+body.theme-lavender {
+    background: 
+        url('data:image/svg+xml;utf8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.04%22/%3E%3C/svg%3E'),
+        linear-gradient(135deg, #5b457a 0%, #302048 100%) !important;
+}
+
+/* ==========================================
+   ЛАВАНДОВАЯ ТЕМА (ПАНЕЛИ И ОКНА)
+   ========================================== */
+
+/* 1. Окно жанра, Окно фильтров и Боковое меню */
+body.theme-lavender .modal-content,
+body.theme-lavender .sidebar-menu,
+body.theme-lavender .side-menu {
+    /* Глубокий сливово-фиолетовый цвет с эффектом стекла */
+    background: rgba(48, 32, 72, 0.85) !important; 
+    border-color: rgba(181, 126, 220, 0.3) !important; /* Лавандовая граница */
+    box-shadow: 0 15px 40px rgba(20, 10, 35, 0.6), inset 0 0 20px rgba(181, 126, 220, 0.05) !important;
+}
+
+/* 2. Нижняя панель навигации */
+body.theme-lavender .bottom-nav {
+    background: rgba(48, 32, 72, 0.85) !important;
+    border-top: 1px solid rgba(181, 126, 220, 0.25) !important;
+}
+
+/* 3. Перекрашиваем карточки треков и внутренние элементы (чтобы не были серыми) */
+body.theme-lavender .track-card,
+body.theme-lavender .sidebar-auth-btn,
+body.theme-lavender .filter-chip,
+body.theme-lavender .region-chip {
+    background: rgba(91, 69, 122, 0.3) !important; /* Более светлый фиолетовый фон для кнопок */
+    border-color: rgba(181, 126, 220, 0.2) !important;
+}
+
+/* 4. Ховер-эффекты для внутренних элементов */
+body.theme-lavender .track-card:hover,
+body.theme-lavender .filter-chip:hover,
+body.theme-lavender .region-chip:hover,
+body.theme-lavender .sidebar-auth-btn:hover {
+    background: rgba(115, 85, 150, 0.5) !important;
+    border-color: #98ff98 !important; /* Сохраняем красивый мятный акцент */
+}
+
+/* 5. Активные фильтры (нажатые) */
+body.theme-lavender .filter-chip.active,
+body.theme-lavender .region-chip.active {
+    background: rgba(152, 255, 152, 0.15) !important;
+    border-color: #8FDDCB !important;
+    color: #8FDDCB !important;
+}
+
+/* 6. Подгоняем цвета текстов в меню и окнах */
+body.theme-lavender .sidebar-links a:hover {
+    background: rgba(181, 126, 220, 0.15) !important;
+}
+
+body.theme-lavender .track-left .track-cover {
+    background: rgba(91, 69, 122, 0.4) !important;
+    border-color: rgba(181, 126, 220, 0.3) !important;
+}
+
+/* ------------------------------------------
+   СВЕТЛАЯ ТЕМА (Полное переопределение)
+   ------------------------------------------ */
+body.theme-light {
+    background: 
+        url('data:image/svg+xml;utf8,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.06%22/%3E%3C/svg%3E'),
+        linear-gradient(135deg, #f4f4f8 0%, #e6e6fa 100%) !important;
+    color: #141419 !important;
+}
+
+/* 1. Плотное светлое стекло для всех панелей и боковых меню */
+body.theme-light .roulette-box,
+body.theme-light .modal-content,
+body.theme-light .side-menu,
+body.theme-light .sidebar-menu,
+body.theme-light .theme-card,
+body.theme-light .daily-genre-box {
+    background: rgba(255, 255, 255, 0.85) !important; /* Увеличили непрозрачность до 85% */
+    border-color: rgba(20, 20, 25, 0.1) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Перекрашиваем нижнюю навигацию */
+body.theme-light .bottom-nav {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-top: 1px solid rgba(20, 20, 25, 0.1) !important;
+}
+
+body.theme-light .nav-item {
+    color: rgba(20, 20, 25, 0.4) !important;
+}
+
+body.theme-light .nav-item.active {
+    color: #141419 !important;
+}
+
+/* 2. Читаемые заголовки и тексты (в том числе в фильтрах) */
+body.theme-light .genre-item.highlight-result,
+body.theme-light .modal-title,
+body.theme-light .sidebar-header h3,
+body.theme-light .daily-label,
+body.theme-light .daily-value,
+body.theme-light #filterModal h3 {
+    color: #141419 !important;
+    text-shadow: none !important;
+}
+
+/* 3. Кнопки в шапке (Бургер и Фильтры) — выделяем на фоне */
+body.theme-light .header-btn {
+    color: #141419 !important;
+    background: rgba(255, 255, 255, 0.6) !important; /* Делаем им светлую подложку */
+    border: 1px solid rgba(20, 20, 25, 0.1) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-light .header-btn:hover {
+    background: rgba(255, 255, 255, 1) !important;
+}
+
+/* 4. Чипы фильтров (Кнопки жанров и регионов) */
+body.theme-light .filter-chip,
+body.theme-light .region-chip {
+    background: rgba(20, 20, 25, 0.05) !important;
+    color: #4a4a5a !important;
+    border: 1px solid rgba(20, 20, 25, 0.1) !important;
+}
+
+body.theme-light .filter-chip.active,
+body.theme-light .region-chip.active {
+    background: #B57EDC !important; /* Лавандовый акцент для выбранного */
+    color: #ffffff !important;
+    border-color: #B57EDC !important;
+    box-shadow: 0 4px 12px rgba(181, 108, 226, 0.3) !important;
+}
+
+/* Прочие элементы текста и управления */
+body.theme-light .genre-item {
+    color: rgba(20, 20, 25, 0.3);
+}
+
+body.theme-light .custom-input {
+    color: #141419;
+    border-bottom-color: rgba(20, 20, 25, 0.3);
+}
+
+body.theme-light .custom-input::placeholder {
+    color: rgba(20, 20, 25, 0.4);
+}
+
+body.theme-light .setting-label,
+body.theme-light .sidebar-links a,
+body.theme-light .close-btn,
+body.theme-light .sidebar-close-btn,
+body.theme-light .theme-card span,
+body.theme-light .auth-switch {
+    color: #4a4a5a !important;
+}
+
+body.theme-light .sidebar-links a:hover {
+    background: rgba(181, 108, 226, 0.1); /* Легкий лавандовый ховер */
+    color: #141419 !important;
+}
+/* ==========================================
+   КОНТРАСТНЫЕ ЭЛЕМЕНТЫ ДЛЯ СВЕТЛОЙ ТЕМЫ
+   ========================================== */
+
+/* 1. Кнопки "Применить" и "Войти в аккаунт" */
+body.theme-light .apply-filter-btn,
+body.theme-light .sidebar-auth-btn {
+    background: #141419 !important; /* Плотный графитовый цвет */
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.theme-light .apply-filter-btn:hover,
+body.theme-light .sidebar-auth-btn:hover {
+    background: #2a2a35 !important; /* Чуть светлеет при наведении */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 2. Поле описания жанра (текст и легкая подложка для читаемости) */
+body.theme-light .genre-description {
+    color: #4a4a5a !important; /* Глубокий темно-серый текст */
+    background: rgba(20, 20, 25, 0.04) !important; /* Едва заметная серая подложка */
+    border: 1px solid rgba(20, 20, 25, 0.08) !important;
+    padding: 15px !important;
+    border-radius: 12px !important;
+}
+
+/* Если в описании жанра будут ссылки или выделения */
+body.theme-light .genre-description b,
+body.theme-light .genre-description strong {
+    color: #141419 !important;
+}
+/* ==========================================
+   МЕХАНИКА ЭКРАНОВ (SPA) И ПОИСК
+   ========================================== */
+.app-view {
+    display: none; 
+    flex-direction: column;
+    align-items: center; 
+    width: 100%;
+    height: 100%; 
+    flex-grow: 1;
+    animation: fadeInView 0.4s ease forwards;
+}
+
+.app-view.active {
+    display: flex; 
+}
+
+@keyframes fadeInView {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Дизайн Поиска --- */
+.search-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(168, 159, 205, 0.6);
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
+.search-input {
+    width: 100%;
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 20px;
+    padding: 18px 50px 18px 55px; /* Изменили: 50px справа под крестик */
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    outline: none;
+    box-sizing: border-box;
+    box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+/* Эффект при клике в строку поиска */
+.search-input:focus {
+    border-color: #98ff98;
+    background: rgba(20, 20, 25, 0.8);
+    box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.3), 0 0 15px rgba(152, 255, 152, 0.1);
+}
+
+.search-input:focus + .search-icon,
+.search-input-wrapper:focus-within .search-icon {
+    color: #98ff98; /* Лупа загорается мятным */
+}
+
+.search-subtitle {
+    color: rgba(168, 159, 205, 0.8);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.search-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.search-tag {
+    background: rgba(168, 159, 205, 0.1);
+    border: 1px solid rgba(168, 159, 205, 0.3);
+    color: #E6E6FA;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-tag:hover {
+    background: rgba(181, 108, 226, 0.2);
+    border-color: #B57EDC;
+    transform: translateY(-2px);
+}
+
+/* --- Адаптация Поиска под Светлую тему --- */
+body.theme-light .search-input {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: #141419 !important;
+    border-color: rgba(20, 20, 25, 0.2) !important;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-light .search-input::placeholder {
+    color: rgba(20, 20, 25, 0.4);
+}
+
+body.theme-light .search-subtitle {
+    color: #4a4a5a !important;
+    font-weight: 600;
+}
+
+body.theme-light .search-tag {
+    background: rgba(20, 20, 25, 0.05) !important;
+    color: #141419 !important;
+    border-color: rgba(20, 20, 25, 0.15) !important;
+}
+
+body.theme-light .search-tag:hover {
+    background: rgba(181, 108, 226, 0.15) !important;
+    border-color: #B57EDC !important;
+}
+/* Скрываем placeholder при фокусе в строке поиска */
+.search-input:focus::placeholder {
+    color: transparent;
+}
+/* Крестик очистки поиска */
+.clear-search-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(168, 159, 205, 0.6);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: none; /* Скрыт, пока поле пустое */
+    transition: color 0.3s ease;
+}
+
+.clear-search-icon:hover {
+    color: #98ff98; /* Мятный при наведении */
+}
+
+/* Крестик для светлой темы */
+body.theme-light .clear-search-icon {
+    color: rgba(20, 20, 25, 0.4);
+}
+
+body.theme-light .clear-search-icon:hover {
+    color: #141419;
+}
+/* ==========================================
+   ЭКРАН ИЗБРАННОГО
+   ========================================== */
+.library-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.view-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-align: left;
+}
+
+.favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
+.empty-library {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(168, 159, 205, 0.5);
+}
+
+.empty-library i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: rgba(168, 159, 205, 0.3);
+}
+
+.empty-library p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Стеклянная карточка сохраненного жанра */
+.favorite-card {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.favorite-card:hover {
+    border-color: #B57EDC;
+    transform: translateX(5px);
+}
+
+.fav-genre-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: capitalize;
+}
+
+.remove-fav-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 100, 100, 0.6);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.remove-fav-btn:hover {
+    color: rgba(255, 50, 50, 1);
+    transform: scale(1.1);
+}
+
+/* --- Настройка под Светлую тему --- */
+body.theme-light .view-title {
+    color: #141419 !important;
+}
+
+body.theme-light .empty-library {
+    color: #4a4a5a !important;
+}
+
+body.theme-light .empty-library i {
+    color: rgba(20, 20, 25, 0.2) !important;
+}
+
+body.theme-light .favorite-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(20, 20, 25, 0.1) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-light .fav-genre-name {
+    color: #141419 !important;
+}
+/* ==========================================
+   ЭКРАН ПРОФИЛЯ
+   ========================================== */
+.profile-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.profile-card {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(168, 159, 205, 0.2);
+    border-radius: 24px;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    box-sizing: border-box;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+}
+
+.profile-avatar {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, #B57EDC 0%, #090b14 100%);
+    border: 2px solid rgba(168, 159, 205, 0.4);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.profile-avatar i {
+    font-size: 2.5rem;
+    color: #ffffff;
+}
+
+.profile-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin: 0 0 5px 0;
+    color: #ffffff;
+}
+
+.profile-status {
+    font-size: 0.9rem;
+    color: #a89fcd;
+    margin: 0;
+}
+
+/* Сетка статистики */
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-box {
+    background: rgba(20, 20, 25, 0.4);
+    border: 1px solid rgba(168, 159, 205, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Обновленные цифры статистики */
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: 600; /* Сделали тоньше и элегантнее */
+    color: #98ff98; 
+    text-shadow: 0 0 10px rgba(152, 255, 152, 0.2); /* Смягчили неон */
+    margin-bottom: 5px;
+}
+
+/* Мягкий цвет для кнопки выхода */
+#logoutBtn span,
+#logoutBtn i:first-child {
+    color: #c78b9e !important; /* Благородный пыльно-розовый оттенок */
+    transition: color 0.3s ease;
+}
+
+#logoutBtn:hover span,
+#logoutBtn:hover i:first-child {
+    color: #e2a0b4 !important; /* Чуть светлеет при наведении */
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: rgba(168, 159, 205, 0.7);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Меню профиля */
+.profile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.profile-menu-item {
+    background: rgba(20, 20, 25, 0.6);
+    border: 1px solid rgba(168, 159, 205, 0.15);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profile-menu-item i:first-child {
+    width: 20px;
+    color: #B57EDC;
+    font-size: 1.1rem;
+}
+
+.profile-menu-item span {
+    flex-grow: 1;
+    text-align: left;
+    font-weight: 600;
+}
+
+.arrow-icon {
+    color: rgba(168, 159, 205, 0.4);
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+}
+
+.profile-menu-item:hover {
+    border-color: rgba(168, 159, 205, 0.4);
+    background: rgba(20, 20, 25, 0.8);
+}
+
+.profile-menu-item:hover .arrow-icon {
+    transform: translateX(3px);
+    color: #98ff98;
+}
+
+/* --- Настройка под Светлую тему --- */
+body.theme-light .profile-card,
+body.theme-light .profile-menu-item,
+body.theme-light .stat-box {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(20, 20, 25, 0.1) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.theme-light .profile-name,
+body.theme-light .profile-menu-item span {
+    color: #141419 !important;
+}
+
+body.theme-light .profile-status,
+body.theme-light .stat-label {
+    color: #4a4a5a !important;
+}
+
+body.theme-light .stat-number {
+    color: #B57EDC !important; /* В светлой теме меняем акцент на лавандовый */
+    text-shadow: none !important;
+}
+
+body.theme-light .profile-avatar {
+    background: linear-gradient(135deg, #B57EDC 0%, #ffffff 100%);
+    border-color: rgba(20, 20, 25, 0.2);
+}
+/* ==========================================
+   ЗАГРУЗКА АВАТАРА
+   ========================================== */
+.profile-avatar-wrapper {
+    position: relative;
+    cursor: pointer;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+/* Настройка отображения загруженной картинки */
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #B57EDC 0%, #090b14 100%);
+    border: 2px solid rgba(168, 159, 205, 0.4);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: transform 0.3s ease;
+}
+
+/* Затемняющий слой с иконкой камеры при наведении */
+.avatar-edit-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 50%;
+}
+
+.avatar-edit-overlay i {
+    color: #98ff98; /* Мятная камера */
+    font-size: 1.5rem;
+}
+
+.profile-avatar-wrapper:hover .avatar-edit-overlay {
+    opacity: 1;
+}
+
+.profile-avatar-wrapper:hover .profile-avatar {
+    transform: scale(1.05);
+}
+/* ==========================================
+   РЕЗУЛЬТАТЫ ПОИСКА
+   ========================================== */
+.search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.search-result-card {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(168, 159, 205, 0.15);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    animation: fadeInView 0.3s ease forwards;
+}
+
+.search-result-card:hover {
+    border-color: #98ff98;
+    background: rgba(20, 20, 25, 0.8);
+    transform: translateX(5px);
+}
+
+.search-result-info h4 {
+    margin: 0 0 5px 0;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.search-result-info p {
+    margin: 0;
+    color: rgba(168, 159, 205, 0.6);
+    font-size: 0.85rem;
+}
+
+.search-arrow {
+    color: rgba(168, 159, 205, 0.3);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.search-result-card:hover .search-arrow {
+    color: #98ff98;
+    transform: translateX(3px);
+}
+
+/* Светлая тема для поиска */
+body.theme-light .search-result-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(20, 20, 25, 0.1) !important;
+}
+
+body.theme-light .search-result-info h4 {
+    color: #141419 !important;
+}
+
+body.theme-light .search-result-info p {
+    color: #4a4a5a !important;
+}
+/* Кнопка лайка в модалке */
+.favorite-btn {
+    color: rgba(168, 159, 205, 0.5);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.1);
+}
+
+.favorite-btn.active {
+    color: #ff6b6b; /* Яркий цвет активного лайка */
+}
+/* ==========================================
+   СТАРТОВАЯ ПОДСКАЗКА В РУЛЕТКЕ (ИСПРАВЛЕННАЯ)
+   ========================================== */
+.start-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Чуть уменьшили отступ, чтобы всё влезло по высоте */
+    height: 120px; /* Жестко привязываем к высоте окна рулетки */
+    /* Убираем старый transform: translateY(25px), чтобы блок стоял строго по центру */
+    transform: none; 
+}
+
+.start-text {
+    font-size: 14px; /* Сделали чуть крупнее и читабельнее */
+    color: rgba(168, 159, 205, 0.8);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.start-arrow {
+    color: #98ff98; /* Наш мятный акцент */
+    font-size: 32px; /* Увеличили саму стрелку */
+    /* Добавили мятное неоновое свечение */
+    text-shadow: 0 0 12px rgba(152, 255, 152, 0.6), 0 0 25px rgba(152, 255, 152, 0.3);
+    /* Новая, компактная анимация */
+    animation: shortBounce 1.5s infinite ease-in-out;
+    will-change: transform; /* Оптимизация для плавности */
+}
+
+/* Короткий, упругий прыжок, который не вылезает за маску окна */
+@keyframes shortBounce {
+    0%, 100% { 
+        transform: translateY(0); 
+        opacity: 0.7; 
+    }
+    50% { 
+        transform: translateY(12px); /* Прыгаем вниз всего на 12px (этого хватит для эффекта) */
+        opacity: 1; 
+        text-shadow: 0 0 18px rgba(152, 255, 152, 0.9), 0 0 35px rgba(152, 255, 152, 0.5);
+    }
+}
+
+/* Поддержка светлой темы */
+body.theme-light .start-text {
+    color: rgba(74, 74, 90, 0.8);
+}
+/* ==========================================
+   КНОПКА GOOGLE И РАЗДЕЛИТЕЛЬ АВТОРИЗАЦИИ
+   ========================================== */
+
+/* Линии разделителя «или» */
+.auth-divider {
+    font-size: 13px;
+    color: rgba(168, 159, 205, 0.4);
+    margin: 15px 0;
+    text-transform: lowercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex-grow: 1;
+    height: 1px;
+    background: rgba(168, 159, 205, 0.15);
+}
+
+/* Базовый стиль кнопки Google (Стандартная темная тема) */
+.google-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 30px;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.google-btn i {
+    font-size: 16px;
+}
+
+.google-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #8FDDCB; /* Наш мятный акцент */
+    color: #8FDDCB;
+    box-shadow: 0 6px 20px rgba(143, 221, 203, 0.2);
+}
+
+/* --- Адаптация под СВЕТЛУЮ тему --- */
+body.theme-light .auth-divider {
+    color: rgba(20, 20, 25, 0.4);
+}
+body.theme-light .auth-divider::before,
+body.theme-light .auth-divider::after {
+    background: rgba(20, 20, 25, 0.1);
+}
+body.theme-light .google-btn {
+    background: #ffffff !important;
+    border: 1px solid rgba(20, 20, 25, 0.15) !important;
+    color: #141419 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+}
+body.theme-light .google-btn:hover {
+    background: #f4f4f8 !important;
+    border-color: #141419 !important;
+    color: #141419 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* --- Адаптация под ЛАВАНДОВУЮ тему --- */
+body.theme-lavender .auth-divider {
+    color: rgba(181, 126, 220, 0.5);
+}
+body.theme-lavender .auth-divider::before,
+body.theme-lavender .auth-divider::after {
+    background: rgba(181, 126, 220, 0.2);
+}
+body.theme-lavender .google-btn {
+    background: rgba(91, 69, 122, 0.3) !important;
+    border-color: rgba(181, 126, 220, 0.2) !important;
+    color: #ffffff !important;
+}
+body.theme-lavender .google-btn:hover {
+    background: rgba(115, 85, 150, 0.5) !important;
+    border-color: #98ff98 !important; /* Мятный фокус */
+    color: #98ff98 !important;
+    box-shadow: 0 6px 20px rgba(152, 255, 152, 0.15) !important;
 }

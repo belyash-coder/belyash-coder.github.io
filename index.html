@@ -8,37 +8,115 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <body>
     <div class="splash-screen" id="splashScreen">
         <h1 class="splash-title">Расширь свои музыкальные границы</h1>
     </div>
+
     <header class="top-bar">
         <button class="header-btn" id="filterBtn">
-    <i class="fa-solid fa-sliders"></i> </button> 
+            <i class="fa-solid fa-sliders"></i> 
+        </button> 
         <button class="header-btn" id="burgerBtn">
-    <i class="fa-solid fa-bars"></i></button>
+            <i class="fa-solid fa-bars"></i>
+        </button>
     </header>
 
     <main class="main-content">
-        <div class="daily-genre-box">
-            <span class="daily-label">Жанр дня:</span>
-            <span class="daily-value" id="dailyGenre">Загрузка...</span>
+        <div id="homeView" class="app-view active">
+            <div class="daily-genre-box">
+                <span class="daily-label">Жанр дня:</span>
+                <span class="daily-value" id="dailyGenre">Загрузка...</span>
+            </div>
+            <div class="roulette-box">
+                <div class="roulette-window">
+                    <div class="roulette-wheel" id="rouletteWheel">
+                        <div class="genre-item start-prompt">
+                            <span class="start-text">Нажми, чтобы начать..</span>
+                            <i class="fa-solid fa-arrow-down start-arrow"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="genre-hint" id="genreHint">Нажми, чтобы узнать больше</div>
+            </div>
+            <div class="or-divider" id="orDivider">или</div>
+            <button class="spin-btn" id="spinBtn">Сгенерировать</button>
         </div>
-        <div class="roulette-box">
-            <div class="roulette-window">
-                <div class="roulette-wheel" id="rouletteWheel">
-                <div class="genre-item">Нажми старт</div>
+
+        <div id="searchView" class="app-view">
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="genreSearchInput" class="search-input" placeholder="Найти жанр, артиста или вайб...">
+                    <i class="fa-solid fa-xmark clear-search-icon" id="clearSearchBtn"></i>
+                </div>
+                
+                <h3 class="search-subtitle">Часто ищут</h3>
+                <div class="search-tags">
+                    <button class="search-tag">Synthwave</button>
+                    <button class="search-tag">Post-Punk</button>
+                    <button class="search-tag">Dream Pop</button>
+                    <button class="search-tag">Dark Ambient</button>
+                    <button class="search-tag">Phonk</button>
+                </div>
+
+                <div id="searchResults" class="search-results">
+                    </div>
             </div>
         </div>
-        <div class="genre-hint" id="genreHint">Нажми, чтобы узнать больше</div>
-    </div>
-        <div class="or-divider" id="orDivider">или</div>
-        <button class="spin-btn" id="spinBtn">Сгенерировать</button>
+        <div id="libraryView" class="app-view">
+            <div class="library-container">
+                <h2 class="view-title">Твоя коллекция</h2>
+                <div id="favoritesList" class="favorites-list">
+                    <div class="empty-library" id="emptyLibrary">
+                        <i class="fa-regular fa-heart"></i>
+                        <p>Здесь пока ничего нет. Крути рулетку и добавляй любимые жанры в избранное!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="profileView" class="app-view">
+            <div class="profile-container">
+                <h2 class="view-title">Профиль</h2>
+                
+                <div class="profile-card">
+                    <div class="profile-avatar-wrapper" id="avatarWrapper">
+                        <div class="profile-avatar" id="profileAvatar">
+                            <i class="fa-solid fa-user-astronaut" id="avatarPlaceholderIcon"></i>
+                        </div>
+                        <div class="avatar-edit-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div class="profile-info">
+                        <h3 class="profile-name">Maksim Belyaev</h3>
+                        <p class="profile-status">Музыкальный исследователь</p>
+                    </div>
+                </div>
+
+                <div class="profile-stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-number" id="statsDiscovered">46</span>
+                        <span class="stat-label">Открыто жанров</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="statsFavorites">0</span>
+                        <span class="stat-label">В избранном</span>
+                    </div>
+                </div>
+
+                <div class="profile-menu">
+                    <button class="profile-menu-item" id="logoutBtn">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Выйти из аккаунта</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <nav class="bottom-nav">
@@ -59,55 +137,37 @@
             <span>Профиль</span>
         </button>
     </nav>
-    <div class="modal-overlay" id="genreModal">
+
+   <div class="modal-overlay" id="genreModal">
         <div class="modal-content">
-            <button class="close-btn" id="closeModalBtn">&times;</button>
-            <h2 class="modal-title" id="modalGenreTitle">Название жанра</h2>
+            <button class="close-btn" id="closeModalBtn">×</button>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-right: 25px;">
+                <h2 class="modal-title" id="modalGenreTitle" style="margin-bottom: 0;">Название жанра</h2>
+                <i class="fa-regular fa-heart favorite-btn" id="modalFavBtn"></i>
+            </div>
+            
             <div class="genre-description" id="genreDescription"></div>
-
-<!-- <div class="genre-description" id="genreDescription"></div> -->
-
-<div id="spotifyTracksContainer"></div>
             <div id="spotifyTracksContainer">
                 <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">
                     <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: #8FDDCB; margin-bottom: 10px;"></i>
-                    
                 </div>
             </div>
-
         </div>
     </div>
 
-    
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="sidebar-menu" id="sidebarMenu">
-        <button class="sidebar-close-btn" id="closeSidebarBtn">&times;</button>
-        
         <div class="sidebar-header">
-            <h3>Настройки</h3>
+            <h3>Меню</h3>
+            <button class="sidebar-close-btn" id="closeSidebarBtn">×</button>
         </div>
         
         <ul class="sidebar-links">
-            <li>
-                <a href="#" id="menuTheme">
-                    <i class="fa-solid fa-palette"></i> Темы оформления
-                </a>
-            </li>
-            <li>
-                <a href="#" id="menuHistory">
-                    <i class="fa-solid fa-clock-rotate-left"></i> История прокруток
-                </a>
-            </li>
-            <li>
-                <a href="#" id="menuAbout">
-                    <i class="fa-solid fa-circle-info"></i> О проекте
-                </a>
-            </li>
-            <li>
-                <a href="#" id="menuSupport">
-                    <i class="fa-solid fa-envelope"></i> Поддержка
-                </a>
-            </li>
+            <li><a href="#" id="menuTheme"><i class="fa-solid fa-palette"></i> Темы оформления</a></li>
+            <li><a href="#" id="menuHistory"><i class="fa-solid fa-clock-rotate-left"></i> История</a></li>
+            <li><a href="#" id="menuAbout"><i class="fa-solid fa-circle-info"></i> О проекте</a></li>
+            <li><a href="#" id="menuSupport"><i class="fa-solid fa-envelope"></i> Поддержка</a></li>
         </ul>
 
         <div class="sidebar-footer">
@@ -116,9 +176,10 @@
             </button>
         </div>
     </div>
+
     <div class="modal-overlay" id="filterModal">
         <div class="modal-content">
-            <h2 class="modal-title" style="color: #B57EDC; margin-bottom: 10px;">Фильтры</h2>
+            <h2 class="modal-title" style="color: #B57EDC; margin-bottom: 20px;">Фильтры</h2>
             
             <h3 style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Музыкальное направление</h3>
             <div class="filter-grid" style="margin-bottom: 25px;">
@@ -130,8 +191,8 @@
                 <button class="filter-chip" data-filter="jazz">Джаз и Блюз</button>
             </div>
 
-           <h3 style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Регион</h3>
-            <div class="filter-grid">
+            <h3 style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Регион</h3>
+            <div class="filter-grid" style="margin-bottom: 25px;">
                 <button class="region-chip active" data-region="all">Весь мир</button>
                 <button class="region-chip" data-region="russian">Россия и СНГ</button>
                 <button class="region-chip" data-region="asian">Азия (K-pop, J-Rock)</button>
@@ -139,15 +200,56 @@
             </div>
 
             <button class="apply-filter-btn" id="closeFilterBtn">Применить</button>
-            
         </div>
     </div>
+    <div class="modal-overlay" id="themeModal">
+        <div class="modal-content">
+            <button class="close-btn" id="closeThemeBtn" style="position: absolute; right: 20px; top: 20px;">×</button>
+            <h2 class="modal-title" style="color: #B57EDC; margin-bottom: 20px;">Оформление</h2>
+            
+            <div class="theme-grid">
+                <div class="theme-card active" data-theme="default">
+                    <div class="theme-preview" style="background: #0a0a0a; border-color: #a89fcd;"></div>
+                    <span>Темная</span>
+                </div>
+                <div class="theme-card" data-theme="light">
+                    <div class="theme-preview" style="background: #f4f4f8; border-color: #141419;"></div>
+                    <span>Светлая</span>
+                </div>
+                <div class="theme-card" data-theme="lavender">
+                    <div class="theme-preview" style="background: #5b457a; border-color: #B57EDC;"></div>
+                    <span>Лавандовая</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="authModal" class="glass-modal">
+    <div class="modal-content">
+        <button class="close-btn" id="closeAuthBtn" style="position: absolute; right: 20px; top: 20px;">×</button>
+        <h2 class="modal-title">ВХОД</h2>
+        
+        <div class="input-group">
+            <input type="email" id="emailInput" class="custom-input" placeholder="E-mail" required>
+        </div>
+        
+        <div class="input-group">
+            <input type="password" id="passwordInput" class="custom-input" placeholder="Пароль" required>
+        </div>
+        
+        <button class="spin-btn auth-btn">Продолжить</button>
+        
+        <div class="auth-divider">или</div>
+        <button class="google-btn" id="googleAuthBtn">
+            <i class="fa-brands fa-google"></i>
+            <span>Войти с помощью Google</span>
+        </button>
+        
+        <p class="auth-switch" style="margin-top: 25px;">Нет аккаунта? <span>Создать</span></p>
+    </div>
+</div>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-
-    <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
-
     <script src="database.js"></script>
     <script src="script.js"></script>
 </body>
