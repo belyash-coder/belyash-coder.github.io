@@ -79,44 +79,49 @@
             </div>
         </div>
         <div id="profileView" class="app-view">
-            <div class="profile-container">
-                <h2 class="view-title">Профиль</h2>
-                
-                <div class="profile-card">
-                    <div class="profile-avatar-wrapper" id="avatarWrapper">
-                        <div class="profile-avatar" id="profileAvatar">
-                            <i class="fa-solid fa-user-astronaut" id="avatarPlaceholderIcon"></i>
-                        </div>
-                        <div class="avatar-edit-overlay">
-                            <i class="fa-solid fa-camera"></i>
-                        </div>
-                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-                    </div>
-                    <div class="profile-info">
-                        <h3 class="profile-name">Maksim Belyaev</h3>
-                        <p class="profile-status">Музыкальный исследователь</p>
-                    </div>
+    <div class="profile-container">
+        <h2 class="view-title">Профиль</h2>
+        
+        <div class="profile-card">
+            <div class="profile-avatar-wrapper" id="avatarWrapper">
+                <div class="profile-avatar" id="profileAvatar">
+                    <i class="fa-solid fa-user-astronaut" id="avatarPlaceholderIcon"></i>
                 </div>
-
-                <div class="profile-stats-grid">
-                    <div class="stat-box">
-                        <span class="stat-number" id="statsDiscovered">46</span>
-                        <span class="stat-label">Открыто жанров</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-number" id="statsFavorites">0</span>
-                        <span class="stat-label">В избранном</span>
-                    </div>
+                <div class="avatar-edit-overlay" id="avatarEditOverlay">
+                    <i class="fa-solid fa-camera"></i>
                 </div>
-
-                <div class="profile-menu">
-                    <button class="profile-menu-item" id="logoutBtn">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        <span>Выйти из аккаунта</span>
-                    </button>
-                </div>
+                <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            </div>
+            <div class="profile-info">
+                <h3 class="profile-name" id="profileNameDisplay">Гость</h3>
+                <p class="profile-status" id="profileEmailDisplay">Неавторизованный пользователь</p>
             </div>
         </div>
+
+        <div class="profile-stats-grid">
+            <div class="stat-box">
+                <span class="stat-number" id="statsDiscovered">0</span>
+                <span class="stat-label">Открыто жанров</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number" id="statsFavorites">0</span>
+                <span class="stat-label">В избранном</span>
+            </div>
+        </div>
+
+        <div class="profile-menu">
+            <button class="profile-menu-item" id="loginFromProfileBtn" style="color: #8FDDCB;">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Войти в аккаунт</span>
+            </button>
+
+            <button class="profile-menu-item" id="logoutBtn" style="display: none; color: #ff6b6b;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Выйти из аккаунта</span>
+            </button>
+        </div>
+    </div>
+</div>
     </main>
 
     <nav class="bottom-nav">
@@ -221,6 +226,22 @@
                     <span>Лавандовая</span>
                 </div>
             </div>
+        </div>
+    </div>
+    <div id="registerPromptModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 320px; text-align: center; padding: 30px 20px;">
+            <button class="close-btn" id="closeRegPromptBtn" style="position: absolute; right: 15px; top: 15px;">×</button>
+            
+            <i class="fa-solid fa-user-shield" style="font-size: 40px; color: #B57EDC; margin-bottom: 15px; text-shadow: 0 0 15px rgba(181, 126, 220, 0.5);"></i>
+            
+            <h3 style="color: #ffffff; font-size: 18px; margin-bottom: 10px; font-weight: 600;">Сохрани прогресс</h3>
+            <p style="color: rgba(168, 159, 205, 0.9); font-size: 14px; margin-bottom: 25px; line-height: 1.5;">
+                Зарегистрируйся, чтобы сохранять понравившиеся жанры, историю поиска и собрать свою уникальную библиотеку.
+            </p>
+            
+            <button class="spin-btn auth-btn" id="goFromPromptToAuthBtn" style="width: 100%; display: flex; justify-content: center; gap: 10px; align-items: center;">
+                <i class="fa-solid fa-right-to-bracket"></i> Войти в аккаунт
+            </button>
         </div>
     </div>
     <div id="authModal" class="glass-modal">

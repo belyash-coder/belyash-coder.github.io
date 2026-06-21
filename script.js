@@ -27,20 +27,43 @@ fetch('genres_data.json')
     .then(data => {
         globalDatabase = data;
         
-        // Автоматически прогоняем все жанры из файла
+        genres = [];
+        appGenres = [];
+        let skippedCount = 0; // Счетчик пропущенных жанров для консоли
+        
+        // Прогоняем все жанры из файла
         for (let key in data) {
-            let niceName = key.charAt(0).toUpperCase() + key.slice(1); // rap -> Rap
+            const genreData = data[key];
+            
+            // --- БЕЗЖАЛОСТНЫЙ ФИЛЬТР ---
+            // Проверяем, пустое ли описание (с учетом заглушек из твоего парсера)
+            const isDescEmpty = !genreData.description || 
+                                genreData.description.includes("Описание пока не собрано") || 
+                                genreData.description.includes("Описание временно недоступно");
+            
+            // Проверяем, пустой ли массив треков
+            const hasNoTracks = !genreData.tracks || genreData.tracks.length === 0;
+            
+            // Если нет ни полезного описания, ни музыки — выкидываем из выдачи
+            if (isDescEmpty && hasNoTracks) {
+                skippedCount++;
+                continue; 
+            }
+            // ---------------------------
+
+            // Если жанр прошел проверку, добавляем его в систему
+            let niceName = key.charAt(0).toUpperCase() + key.slice(1);
             
             genres.push(niceName);
             appGenres.push({
                 name: niceName,
-                desc: data[key].description || `Погрузитесь в атмосферу жанра ${niceName}.`
+                desc: genreData.description || `Погрузитесь в атмосферу жанра ${niceName}.`
             });
         }
         
-        console.log(`✅ База загружена! Жанров в системе: ${genres.length}`);
+        console.log(`✅ База загружена! Рабочих жанров: ${genres.length}. Отфильтровано пустых: ${skippedCount}`);
         
-        // Запускаем Жанр дня только после того, как база загрузилась
+        // Запускаем Жанр дня
         if (typeof setDailyGenre === 'function') {
             setDailyGenre();
         }
@@ -90,7 +113,7 @@ if (dailyGenreDisplay && genres.length > 0) {
     dailyGenreDisplay.innerText = genres[dailyIndex];
 }
 
-// ЛОГИКА РУЛЕТКИ (Оставил без изменений, работает идеально)
+// ЛОГИКА РУЛЕТКИ
 if (button && wheel) {
     button.addEventListener("click", () => {
         if (isSpinning) return; 
@@ -149,6 +172,7 @@ if (button && wheel) {
             wheel.style.transform = `translateY(-${stopPosition}px)`;
         }, 50);
 
+        // --- ТОТ САМЫЙ ТАЙМЕР ОСТАНОВКИ РУЛЕТКИ ---
         setTimeout(() => {
             isSpinning = false;
             button.style.opacity = "1";
@@ -160,6 +184,27 @@ if (button && wheel) {
             
             hasResult = true;
             rouletteBox.style.cursor = "pointer";
+
+            // ---> НАША НОВАЯ ЛОГИКА ПОЯВЛЕНИЯ ПОДСКАЗКИ <---
+            let isUserLoggedIn = false;
+            if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                isUserLoggedIn = true;
+            }
+            
+            const hasSeenPrompt = localStorage.getItem("hasSeenRegPrompt");
+            
+            if (!isUserLoggedIn && !hasSeenPrompt) {
+                // Ждем 1 секунду после остановки рулетки
+                setTimeout(() => {
+                    const promptModal = document.getElementById("registerPromptModal");
+                    if (promptModal) {
+                        promptModal.classList.add("active");
+                        localStorage.setItem("hasSeenRegPrompt", "true");
+                    }
+                }, 1000); 
+            }
+            // ------------------------------------------------
+
         }, 4550);
     });
 }
@@ -170,11 +215,12 @@ let currentAudio = null;
 let currentPlayBtn = null;
 
 // === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
+// === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
+// === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
 function renderTracksInModal(genreName) {
     const container = document.getElementById("spotifyTracksContainer");
     if (!container) return;
 
-    // Сразу показываем красивый мятный спиннер загрузки
     container.innerHTML = `
         <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">
             <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: #8FDDCB; margin-bottom: 10px;"></i>
@@ -182,18 +228,26 @@ function renderTracksInModal(genreName) {
         </div>
     `;
 
-    // ПЕРЕВОДИМ НАЗВАНИЕ В НИЖНИЙ РЕГИСТР, чтобы найти в JSON (Pop -> pop)
     const dbKey = genreName.toLowerCase();
     const genreInfo = globalDatabase[dbKey];
 
-    // Если жанра нет в базе или нет треков
     if (!genreInfo || !genreInfo.tracks || genreInfo.tracks.length === 0) {
         container.innerHTML = "<p style='color: #a89fcd; text-align:center;'>Для этого жанра пока нет доступных треков.</p>";
         return;
     }
 
     container.innerHTML = ""; // Убираем спиннер
-    const tracksToShow = genreInfo.tracks.slice(0, 3); // Берем первые 3 трека
+    
+    // СОРТИРОВКА: Сначала треки с ID от Apple (можно слушать), затем остальные (с замочком)
+    const sortedTracks = [...genreInfo.tracks].sort((a, b) => {
+        const aHasApple = a.streaming_ids?.apple ? 1 : 0;
+        const bHasApple = b.streaming_ids?.apple ? 1 : 0;
+        // Те, у кого есть Apple (1), встают выше тех, у кого нет (0)
+        return bHasApple - aHasApple; 
+    });
+
+    // Берем все отсортированные треки, а не только первые 3
+    const tracksToShow = sortedTracks; 
 
     tracksToShow.forEach(track => {
         const title = track.title || "Неизвестный трек";
@@ -204,24 +258,29 @@ function renderTracksInModal(genreName) {
         const card = document.createElement("div");
         card.className = "track-card";
 
-        // ЕСЛИ ЕСТЬ ID APPLE MUSIC - создаем рабочую карточку
         if (appleId) {
+            // Добавили контейнер сикбара под артиста и настроили flex, чтобы ничего не вылезало за края
             card.innerHTML = `
-                <div class="track-left">
+                <div class="track-left" style="flex-grow: 1; min-width: 0;">
                     <div class="track-cover" id="cover-${appleId}">
                         <div class="cover-placeholder">♪</div>
                     </div>
-                    <div class="track-info">
+                    <div class="track-info" style="width: 100%;">
                         <div class="track-title">${title}</div>
                         <div class="track-artist">${artist}</div>
+                        
+                        <div class="seek-bar-container" id="seek-container-${appleId}">
+                            <div class="seek-bar-progress" id="seek-progress-${appleId}"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="play-btn" id="btn-${appleId}">▶</div>
+                <div class="play-btn" id="btn-${appleId}">
+                    <i class="fa-solid fa-play"></i>
+                </div>
             `;
             wrapper.appendChild(card);
             container.appendChild(wrapper);
 
-            // Идем в Apple за обложкой и звуком
             fetch(`https://itunes.apple.com/lookup?id=${appleId}`)
                 .then(res => res.json())
                 .then(data => {
@@ -238,37 +297,69 @@ function renderTracksInModal(genreName) {
                 })
                 .catch(err => console.error("Ошибка загрузки Apple:", err));
 
-            // Логика кнопки PLAY
-            card.addEventListener("click", function() {
+            // Логика воспроизведения и сикбара
+            card.addEventListener("click", function(e) {
                 const playBtn = document.getElementById(`btn-${appleId}`);
                 const audioUrl = playBtn.dataset.audioUrl;
+                const seekBarContainer = document.getElementById(`seek-container-${appleId}`);
+                const progressBar = document.getElementById(`seek-progress-${appleId}`);
 
                 if (!audioUrl) return; 
 
+                // Если мы кликнули именно по сикбару и трек сейчас играет -> Перематываем
+                if (e.target.closest('.seek-bar-container') && currentAudio && currentAudio.trackId === appleId) {
+                    const rect = seekBarContainer.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const percent = clickX / rect.width;
+                    currentAudio.currentTime = percent * currentAudio.duration;
+                    return; // Прерываем выполнение, чтобы трек не поставился на паузу
+                }
+
+                // Стандартная пауза/плей для текущего трека
                 if (currentAudio && currentAudio.trackId === appleId) {
                     if (!currentAudio.paused) {
                         currentAudio.pause();
-                        playBtn.innerText = "▶";
+                        playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                     } else {
                         currentAudio.play();
-                        playBtn.innerText = "⏸";
+                        playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
                     }
                     return;
                 }
+                
+                // Если играл другой трек - выключаем его и обнуляем его сикбар
                 if (currentAudio) {
                     currentAudio.pause();
-                    if (currentPlayBtn) currentPlayBtn.innerText = "▶";
+                    if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                    const prevProgress = document.getElementById(`seek-progress-${currentAudio.trackId}`);
+                    if (prevProgress) prevProgress.style.width = '0%';
                 }
+                
+                // Запускаем новый трек
                 currentAudio = new Audio(audioUrl);
                 currentAudio.trackId = appleId;
                 currentPlayBtn = playBtn;
+                
                 currentAudio.play();
-                playBtn.innerText = "⏸"; 
-                currentAudio.onended = () => { playBtn.innerText = "▶"; };
+                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
+                
+                // --- СИНХРОНИЗАЦИЯ СИКБАРА ---
+                currentAudio.addEventListener('timeupdate', () => {
+                    if (currentAudio.duration) {
+                        const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
+                        if (progressBar) progressBar.style.width = percent + '%';
+                    }
+                });
+
+                // Когда трек закончился
+                currentAudio.onended = () => { 
+                    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+                    if (progressBar) progressBar.style.width = '0%'; // Сбрасываем сикбар
+                };
             });
 
         } else {
-            // ЕСЛИ НЕТ ID APPLE MUSIC - создаем красивую заглушку без плеера
+            // ЕСЛИ НЕТ ID APPLE MUSIC - заглушка с замочком
             card.innerHTML = `
                 <div class="track-left">
                     <div class="track-cover" style="opacity: 0.5;">
@@ -283,7 +374,6 @@ function renderTracksInModal(genreName) {
                     <i class="fa-solid fa-lock"></i>
                 </div>
             `;
-            // Убираем анимации при наведении с карточки-заглушки
             card.style.cursor = "default";
             wrapper.appendChild(card);
             container.appendChild(wrapper);
@@ -668,46 +758,74 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
         searchInput.focus();
     });
 }
-// --- ЛОГИКА ЗАГРУЗКИ АВАТАРА ---
-const avatarWrapper = document.getElementById("avatarWrapper");
-const avatarInput = document.getElementById("avatarInput");
+// --- ЛОГИКА ПРОФИЛЯ И FIREBASE AUTH ---
+const profileNameDisplay = document.getElementById("profileNameDisplay");
+const profileEmailDisplay = document.getElementById("profileEmailDisplay");
 const profileAvatar = document.getElementById("profileAvatar");
 const avatarPlaceholderIcon = document.getElementById("avatarPlaceholderIcon");
+const avatarEditOverlay = document.getElementById("avatarEditOverlay");
+const logoutBtn = document.getElementById("logoutBtn");
+const loginFromProfileBtn = document.getElementById("loginFromProfileBtn");
 
-// Функция для установки аватара
-function setAvatar(savedImage) {
-    profileAvatar.style.backgroundImage = `url('${savedImage}')`;
-    if (avatarPlaceholderIcon) {
-        avatarPlaceholderIcon.style.display = "none"; // Скрываем иконку космонавта
+// Функция мгновенного обновления интерфейса
+function updateProfileUI(user) {
+    if (user) {
+        // Пользователь успешно авторизован
+        if (profileNameDisplay) profileNameDisplay.textContent = user.displayName || "Пользователь";
+        if (profileEmailDisplay) profileEmailDisplay.textContent = user.email || "Музыкальный исследователь";
+        
+        // Ставим гугловскую аватарку
+        if (user.photoURL && profileAvatar) {
+            profileAvatar.style.backgroundImage = `url('${user.photoURL}')`;
+            if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "none";
+            if (avatarEditOverlay) avatarEditOverlay.style.display = "none"; // Камеру убираем, аватар из Google
+        }
+
+        // Переключаем кнопки
+        if (logoutBtn) logoutBtn.style.display = "flex";
+        if (loginFromProfileBtn) loginFromProfileBtn.style.display = "none";
+    } else {
+        // Режим гостя
+        if (profileNameDisplay) profileNameDisplay.textContent = "Гость";
+        if (profileEmailDisplay) profileEmailDisplay.textContent = "Неавторизованный пользователь";
+        
+        // Возвращаем иконку космонавта
+        if (profileAvatar) profileAvatar.style.backgroundImage = "none";
+        if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "block";
+        if (avatarEditOverlay) avatarEditOverlay.style.display = "none"; // Камеру скрываем, пока гость
+
+        // Переключаем кнопки
+        if (logoutBtn) logoutBtn.style.display = "none";
+        if (loginFromProfileBtn) loginFromProfileBtn.style.display = "flex";
     }
 }
 
-// Загрузка аватара из памяти при старте страницы
-const savedAvatar = localStorage.getItem("userAvatar");
-if (savedAvatar && profileAvatar) {
-    setAvatar(savedAvatar);
+// 1. АВТОМАТИЧЕСКИЙ РАДАР СОСТОЯНИЯ (Слушает Firebase 24/7)
+if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged((user) => {
+        updateProfileUI(user);
+    });
 }
 
-if (avatarWrapper && avatarInput) {
-    // Клик по аватару вызывает окно выбора файла
-    avatarWrapper.addEventListener("click", () => {
-        avatarInput.click();
-    });
-
-    // Обработка выбора файла
-    avatarInput.addEventListener("change", function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                localStorage.setItem("userAvatar", base64Image); // Сохраняем в localStorage
-                setAvatar(base64Image); // Обновляем на экране
-            };
-            
-            reader.readAsDataURL(file);
+// 2. ЛОГИКА КНОПКИ "ВЫЙТИ"
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().signOut().then(() => {
+                console.log("✅ Успешный выход из аккаунта");
+                // Можно добавить очистку избранного из экрана, если потребуется
+            }).catch((error) => {
+                console.error("❌ Ошибка при выходе:", error);
+            });
         }
+    });
+}
+
+// 3. ЛОГИКА КНОПКИ "ВОЙТИ" (Из экрана профиля)
+if (loginFromProfileBtn) {
+    loginFromProfileBtn.addEventListener("click", () => {
+        const authModal = document.getElementById("authModal");
+        if (authModal) authModal.classList.add("active");
     });
 }
 // --- ЛОГИКА ЗАКРЫТИЯ ОКНА ЖАНРА ---
@@ -922,6 +1040,31 @@ if (googleAuthBtn) {
             console.log("🤖 Имитация входа: Firebase Auth не подключен к сети.");
             alert("Запрос на авторизацию Google отправлен (режим разработки)!");
             document.getElementById("authModal").classList.remove("active");
+        }
+    });
+}
+// ==========================================
+// ЛОГИКА КНОПОК ПОДСКАЗКИ ДЛЯ НЕЗАРЕГИСТРИРОВАННЫХ
+// ==========================================
+const regPromptModal = document.getElementById("registerPromptModal");
+const closeRegPromptBtn = document.getElementById("closeRegPromptBtn");
+const goFromPromptToAuthBtn = document.getElementById("goFromPromptToAuthBtn");
+
+// Обработка крестика (закрыть подсказку)
+if (closeRegPromptBtn && regPromptModal) {
+    closeRegPromptBtn.addEventListener("click", () => {
+        regPromptModal.classList.remove("active");
+    });
+}
+
+// Обработка кнопки "Войти в аккаунт" внутри подсказки
+if (goFromPromptToAuthBtn && regPromptModal) {
+    goFromPromptToAuthBtn.addEventListener("click", () => {
+        regPromptModal.classList.remove("active"); // Скрываем подсказку
+        
+        const authModal = document.getElementById("authModal");
+        if (authModal) {
+            authModal.classList.add("active"); // Вызываем основное меню авторизации
         }
     });
 }

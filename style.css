@@ -2348,3 +2348,37 @@ body.theme-lavender .google-btn:hover {
     color: #98ff98 !important;
     box-shadow: 0 6px 20px rgba(152, 255, 152, 0.15) !important;
 }
+/* ==========================================
+   ПРОГРЕСС-БАР (СИКБАР) ТРЕКОВ
+   ========================================== */
+.seek-bar-container {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-top: 8px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: height 0.2s ease;
+}
+
+/* При наведении делаем полосу чуть толще для удобства клика */
+.track-card:hover .seek-bar-container {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.seek-bar-progress {
+    height: 100%;
+    width: 0%; /* Стартуем с нуля */
+    background: #98ff98; /* Мятный акцент */
+    border-radius: 2px;
+    transition: width 0.1s linear; /* Плавное движение */
+    box-shadow: 0 0 8px rgba(152, 255, 152, 0.5); /* Неоновое свечение */
+}
+
+/* Адаптация под светлую тему */
+body.theme-light .seek-bar-container {
+    background: rgba(20, 20, 25, 0.1);
+}
