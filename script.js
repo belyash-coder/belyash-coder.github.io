@@ -886,22 +886,24 @@ if (settingsAvatarInput) {
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                // Показываем окно обрезки
                 cropImage.src = event.target.result;
                 cropModal.classList.add("active");
                 
-                // Инициализируем или перезапускаем Cropper.js
                 if (cropper) cropper.destroy();
                 cropper = new Cropper(cropImage, {
-                    aspectRatio: 1, // Фиксируем квадрат для аватарки
-                    viewMode: 1,
+                    aspectRatio: 1,
+                    viewMode: 1, 
+                    dragMode: 'move', 
+                    cropBoxMovable: false, 
+                    cropBoxResizable: false, 
+                    toggleDragModeOnDblclick: false, 
                     background: false,
-                    zoomable: true
+                    autoCropArea: 0.8 
                 });
             };
             reader.readAsDataURL(file);
         }
-        e.target.value = ""; // Сбрасываем input, чтобы можно было выбрать тот же файл снова
+        e.target.value = ""; 
     });
 }
 

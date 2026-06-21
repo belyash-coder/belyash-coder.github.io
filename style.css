@@ -2382,3 +2382,26 @@ body.theme-lavender .google-btn:hover {
 body.theme-light .seek-bar-container {
     background: rgba(20, 20, 25, 0.1);
 }
+/* ==========================================
+   НАСТРОЙКИ CROPPER.JS И АВАТАРОК (КРУГЛЫЙ CROP)
+   ========================================== */
+/* Скругляем саму зону обрезки, чтобы юзер видел круг */
+.cropper-view-box,
+.cropper-face {
+    border-radius: 50%;
+}
+
+/* Убираем технические квадратные линии и точки по краям */
+.cropper-dashed,
+.cropper-point,
+.cropper-line,
+.cropper-center {
+    display: none !important;
+}
+
+/* Жестко центрируем фон аватарок, чтобы не было пустых краев */
+.profile-avatar {
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
