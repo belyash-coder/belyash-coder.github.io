@@ -184,6 +184,19 @@ if (button && wheel) {
             
             hasResult = true;
             rouletteBox.style.cursor = "pointer";
+            // ---> СОХРАНЕНИЕ В ИСТОРИЮ <---
+            const finalRolledGenre = wheel.lastElementChild.innerText;
+            
+            // Удаляем дубль (если жанр уже был), чтобы перенести его на самый верх
+            spinHistory = spinHistory.filter(g => g !== finalRolledGenre);
+            spinHistory.push(finalRolledGenre);
+            
+            // Храним только последние 30 штук, чтобы не забивать память
+            if (spinHistory.length > 30) spinHistory.shift();
+            
+            localStorage.setItem("spinHistory", JSON.stringify(spinHistory));
+            if (typeof updateHistoryUI === 'function') updateHistoryUI();
+            // -----------------------------
 
             // ---> НАША НОВАЯ ЛОГИКА ПОЯВЛЕНИЯ ПОДСКАЗКИ <---
             let isUserLoggedIn = false;
@@ -306,56 +319,62 @@ function renderTracksInModal(genreName) {
 
                 if (!audioUrl) return; 
 
-                // Если мы кликнули именно по сикбару и трек сейчас играет -> Перематываем
-                if (e.target.closest('.seek-bar-container') && currentAudio && currentAudio.trackId === appleId) {
-                    const rect = seekBarContainer.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const percent = clickX / rect.width;
-                    currentAudio.currentTime = percent * currentAudio.duration;
-                    return; // Прерываем выполнение, чтобы трек не поставился на паузу
+                // 1. ЕСЛИ КЛИКНУЛИ ПО СИКБАРУ -> Только перематываем
+                if (e.target.closest('.seek-bar-container')) {
+                    if (currentAudio && currentAudio.trackId === appleId) {
+                        const rect = seekBarContainer.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const percent = clickX / rect.width;
+                        currentAudio.currentTime = percent * currentAudio.duration;
+                    }
+                    return; // Выходим из функции, трек не ставится на паузу
                 }
 
-                // Стандартная пауза/плей для текущего трека
-                if (currentAudio && currentAudio.trackId === appleId) {
-                    if (!currentAudio.paused) {
+                // 2. ЕСЛИ КЛИКНУЛИ ТОЛЬКО ПО КНОПКЕ PLAY/PAUSE -> Запускаем/Останавливаем
+                if (e.target.closest('.play-btn')) {
+                    
+                    // Стандартная пауза/плей для текущего трека
+                    if (currentAudio && currentAudio.trackId === appleId) {
+                        if (!currentAudio.paused) {
+                            currentAudio.pause();
+                            playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                        } else {
+                            currentAudio.play();
+                            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                        }
+                        return;
+                    }
+                    
+                    // Если играл другой трек - выключаем его и обнуляем его сикбар
+                    if (currentAudio) {
                         currentAudio.pause();
-                        playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-                    } else {
-                        currentAudio.play();
-                        playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                        if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                        const prevProgress = document.getElementById(`seek-progress-${currentAudio.trackId}`);
+                        if (prevProgress) prevProgress.style.width = '0%';
                     }
-                    return;
-                }
-                
-                // Если играл другой трек - выключаем его и обнуляем его сикбар
-                if (currentAudio) {
-                    currentAudio.pause();
-                    if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-                    const prevProgress = document.getElementById(`seek-progress-${currentAudio.trackId}`);
-                    if (prevProgress) prevProgress.style.width = '0%';
-                }
-                
-                // Запускаем новый трек
-                currentAudio = new Audio(audioUrl);
-                currentAudio.trackId = appleId;
-                currentPlayBtn = playBtn;
-                
-                currentAudio.play();
-                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
-                
-                // --- СИНХРОНИЗАЦИЯ СИКБАРА ---
-                currentAudio.addEventListener('timeupdate', () => {
-                    if (currentAudio.duration) {
-                        const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
-                        if (progressBar) progressBar.style.width = percent + '%';
-                    }
-                });
+                    
+                    // Запускаем новый трек
+                    currentAudio = new Audio(audioUrl);
+                    currentAudio.trackId = appleId;
+                    currentPlayBtn = playBtn;
+                    
+                    currentAudio.play();
+                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
+                    
+                    // --- СИНХРОНИЗАЦИЯ СИКБАРА ---
+                    currentAudio.addEventListener('timeupdate', () => {
+                        if (currentAudio.duration) {
+                            const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
+                            if (progressBar) progressBar.style.width = percent + '%';
+                        }
+                    });
 
-                // Когда трек закончился
-                currentAudio.onended = () => { 
-                    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-                    if (progressBar) progressBar.style.width = '0%'; // Сбрасываем сикбар
-                };
+                    // Когда трек закончился
+                    currentAudio.onended = () => { 
+                        playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+                        if (progressBar) progressBar.style.width = '0%'; // Сбрасываем сикбар
+                    };
+                }
             });
 
         } else {
@@ -770,6 +789,9 @@ const openProfileSettingsBtn = document.getElementById("openProfileSettingsBtn")
 
 // Функция мгновенного обновления интерфейса
 function updateProfileUI(user) {
+    // Находим кнопку авторизации из бокового меню напрямую
+    const menuAuthBtn = document.getElementById("sidebarAuthBtn");
+
     if (user) {
         if (profileNameDisplay) profileNameDisplay.textContent = user.displayName || "Пользователь";
         
@@ -787,9 +809,14 @@ function updateProfileUI(user) {
             if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
         }
 
+        // Логика кнопок профиля
         if (logoutBtn) logoutBtn.style.display = "flex";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "none";
-        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "block"; // Показываем шестеренку
+        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "block"; 
+        
+        // ---> СКРЫВАЕМ КНОПКУ В БОКОВОМ МЕНЮ <---
+        if (menuAuthBtn) menuAuthBtn.style.display = "none";
+
     } else {
         if (profileNameDisplay) profileNameDisplay.textContent = "Гость";
         if (profileEmailDisplay) profileEmailDisplay.textContent = "Неавторизованный пользователь";
@@ -798,9 +825,13 @@ function updateProfileUI(user) {
         if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "block";
         if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
 
+        // Логика кнопок профиля
         if (logoutBtn) logoutBtn.style.display = "none";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "flex";
-        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "none"; // Прячем шестеренку
+        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "none"; 
+        
+        // ---> ВОЗВРАЩАЕМ КНОПКУ В БОКОВОЕ МЕНЮ <---
+        if (menuAuthBtn) menuAuthBtn.style.display = "flex"; 
     }
 }
 
@@ -1207,3 +1238,116 @@ if (goFromPromptToAuthBtn && regPromptModal) {
         }
     });
 }
+// ==========================================
+// ЛОГИКА ОКОН БОКОВОГО МЕНЮ И ИСТОРИИ
+// ==========================================
+const historyModal = document.getElementById("historyModal");
+const aboutModal = document.getElementById("aboutModal");
+const supportModal = document.getElementById("supportModal");
+
+const menuHistoryBtn = document.getElementById("menuHistory");
+const menuAboutBtn = document.getElementById("menuAbout");
+const menuSupportBtn = document.getElementById("menuSupport");
+
+// Открытие окон с автоматическим скрытием левого меню
+function openSidebarModal(modalElement) {
+    const sidebarMenu = document.getElementById("sidebarMenu");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+    if (sidebarMenu) sidebarMenu.classList.remove("active");
+    if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+
+    setTimeout(() => {
+        if (modalElement) modalElement.classList.add("active");
+    }, 300);
+}
+
+if (menuHistoryBtn) menuHistoryBtn.addEventListener("click", (e) => { e.preventDefault(); openSidebarModal(historyModal); });
+if (menuAboutBtn) menuAboutBtn.addEventListener("click", (e) => { e.preventDefault(); openSidebarModal(aboutModal); });
+if (menuSupportBtn) menuSupportBtn.addEventListener("click", (e) => { e.preventDefault(); openSidebarModal(supportModal); });
+
+// Закрытие окон по крестикам
+document.getElementById("closeHistoryBtn")?.addEventListener("click", () => historyModal.classList.remove("active"));
+document.getElementById("closeAboutBtn")?.addEventListener("click", () => aboutModal.classList.remove("active"));
+document.getElementById("closeSupportBtn")?.addEventListener("click", () => supportModal.classList.remove("active"));
+
+// --- СИСТЕМА ИСТОРИИ ---
+const historyListContainer = document.getElementById("historyListContainer");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+let spinHistory = JSON.parse(localStorage.getItem("spinHistory")) || [];
+
+function updateHistoryUI() {
+    if (!historyListContainer) return;
+    historyListContainer.innerHTML = "";
+
+    if (spinHistory.length === 0) {
+        historyListContainer.innerHTML = '<p style="text-align: center; color: rgba(168,159,205,0.5); font-size: 14px; margin-top: 20px;">История пока пуста</p>';
+        if (clearHistoryBtn) clearHistoryBtn.style.display = "none";
+        return;
+    }
+
+    if (clearHistoryBtn) clearHistoryBtn.style.display = "block";
+
+    // Выводим жанры с конца (самые свежие сверху)
+    [...spinHistory].reverse().forEach(genreName => {
+        const item = document.createElement("div");
+        item.className = "search-result-card"; // Используем стиль карточек из поиска
+        item.style.marginBottom = "10px";
+        
+        item.innerHTML = `
+            <div class="search-result-info" style="pointer-events: none;">
+                <h4 style="margin: 0; font-size: 16px;">${genreName}</h4>
+            </div>
+            <i class="fa-solid fa-rotate-right search-arrow" style="color: #8FDDCB; pointer-events: none;"></i>
+        `;
+
+        // При клике на жанр из истории - открываем его окно с треками
+        item.addEventListener("click", () => {
+            const genreModal = document.getElementById("genreModal");
+            const modalTitle = document.getElementById("modalGenreTitle");
+            const modalDesc = document.getElementById("genreDescription");
+            
+            const dbKey = genreName.toLowerCase();
+            const genreInfo = globalDatabase[dbKey];
+
+            if (genreModal && modalTitle && modalDesc) {
+                modalTitle.innerText = genreName;
+                if (genreInfo) {
+                    modalDesc.innerText = genreInfo.description;
+                } else {
+                    modalDesc.innerHTML = `Погрузитесь в атмосферу <b>${genreName}</b>.<br><br><span style="font-size: 0.9em; opacity: 0.7;">Информация скоро появится.</span>`;
+                }
+
+                currentModalGenre = { name: genreName }; // Запоминаем для системы Избранного
+                
+                // Проверяем статус лайка
+                if (typeof modalFavBtn !== 'undefined' && modalFavBtn && typeof favoriteGenres !== 'undefined') {
+                    const isFav = favoriteGenres.some(g => g.name === genreName);
+                    if (isFav) {
+                        modalFavBtn.classList.add("active");
+                        modalFavBtn.classList.replace("fa-regular", "fa-solid");
+                    } else {
+                        modalFavBtn.classList.remove("active");
+                        modalFavBtn.classList.replace("fa-solid", "fa-regular");
+                    }
+                }
+
+                renderTracksInModal(genreName);
+                
+                historyModal.classList.remove("active"); // Прячем историю
+                setTimeout(() => genreModal.classList.add("active"), 300); // Показываем жанр
+            }
+        });
+
+        historyListContainer.appendChild(item);
+    });
+}
+
+if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener("click", () => {
+        spinHistory = [];
+        localStorage.removeItem("spinHistory");
+        updateHistoryUI();
+    });
+}
+
+updateHistoryUI(); // Отрисовываем при старте

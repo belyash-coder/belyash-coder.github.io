@@ -177,9 +177,9 @@
         
         <ul class="sidebar-links">
             <li><a href="#" id="menuTheme"><i class="fa-solid fa-palette"></i> Темы оформления</a></li>
-            <li><a href="#" id="menuHistory"><i class="fa-solid fa-clock-rotate-left"></i> История</a></li>
-            <li><a href="#" id="menuAbout"><i class="fa-solid fa-circle-info"></i> О проекте</a></li>
-            <li><a href="#" id="menuSupport"><i class="fa-solid fa-envelope"></i> Поддержка</a></li>
+            <a href="#" class="sidebar-link" id="menuHistory"><i class="fa-solid fa-clock-rotate-left"></i> История</a>
+<a href="#" class="sidebar-link" id="menuAbout"><i class="fa-solid fa-circle-info"></i> О проекте</a>
+<a href="#" class="sidebar-link" id="menuSupport"><i class="fa-solid fa-hand-holding-heart"></i> Поддержка</a>
         </ul>
 
         <div class="sidebar-footer">
@@ -316,6 +316,48 @@
                 <button class="spin-btn" id="cancelCropBtn" style="background: rgba(255,255,255,0.1); color: #fff; flex: 1;">Отмена</button>
                 <button class="spin-btn" id="applyCropBtn" style="flex: 1;">Применить</button>
             </div>
+        </div>
+    </div>
+    <div id="historyModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 400px; max-height: 80vh; display: flex; flex-direction: column;">
+            <button class="close-btn" id="closeHistoryBtn" style="position: absolute; right: 15px; top: 15px;">×</button>
+            <h3 style="color: #fff; margin-bottom: 20px; text-align: center;">История рулетки</h3>
+            
+            <div id="historyListContainer" style="flex-grow: 1; overflow-y: auto; padding-right: 10px; margin-right: -5px;">
+                <p style="text-align: center; color: rgba(168,159,205,0.5); font-size: 14px;">История пока пуста</p>
+            </div>
+            
+            <button id="clearHistoryBtn" style="margin-top: 15px; background: transparent; border: 1px solid rgba(255, 107, 107, 0.5); color: #ff6b6b; padding: 10px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;">
+                Очистить историю
+            </button>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 350px; text-align: center; padding: 30px 20px;">
+            <button class="close-btn" id="closeAboutBtn" style="position: absolute; right: 15px; top: 15px;">×</button>
+            <i class="fa-solid fa-compact-disc" style="font-size: 40px; color: #B57EDC; margin-bottom: 15px; text-shadow: 0 0 15px rgba(181, 126, 220, 0.5);"></i>
+            <h3 style="color: #fff; margin-bottom: 15px;">Random Music Genre</h3>
+            <p style="color: rgba(168,159,205,0.9); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+                Масштабная музыкальная энциклопедия. Наша цель — помочь вам выйти за рамки привычных плейлистов и исследовать мировую музыку в удобном и понятном формате.
+            </p>
+            <a href="https://t.me/твой_канал" target="_blank" class="spin-btn" style="display: block; text-decoration: none; margin-top: 10px;">
+                <i class="fa-brands fa-telegram"></i> ЧАСТОТА / FREQUENCY
+            </a>
+        </div>
+    </div>
+
+    <div id="supportModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 350px; text-align: center; padding: 30px 20px;">
+            <button class="close-btn" id="closeSupportBtn" style="position: absolute; right: 15px; top: 15px;">×</button>
+            <i class="fa-solid fa-hand-holding-heart" style="font-size: 40px; color: #8FDDCB; margin-bottom: 15px; text-shadow: 0 0 15px rgba(143, 221, 203, 0.5);"></i>
+            <h3 style="color: #fff; margin-bottom: 15px;">Поддержать проект</h3>
+            <p style="color: rgba(168,159,205,0.9); font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
+                Проект разрабатывается и поддерживается силами энтузиастов. Если вам нравится то, что мы делаем, вы можете угостить нас кофе или оформить подписку. Это пойдет на оплату серверов и развитие базы!
+            </p>
+            <a href="https://boosty.to/твой_профиль" target="_blank" class="spin-btn" style="display: block; text-decoration: none; background: linear-gradient(135deg, #f15f2c, #e53935);">
+                <i class="fa-solid fa-bolt"></i> Поддержать на Boosty
+            </a>
         </div>
     </div>
 
