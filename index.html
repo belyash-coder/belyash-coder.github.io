@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Random Music Genre</title>
     
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -80,7 +82,12 @@
         </div>
         <div id="profileView" class="app-view">
     <div class="profile-container">
-        <h2 class="view-title">Профиль</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="view-title">Профиль</h2>
+                    <button id="openProfileSettingsBtn" style="background: none; border: none; color: #B57EDC; font-size: 22px; cursor: pointer; display: none; transition: text-shadow 0.3s ease;">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
         
         <div class="profile-card">
             <div class="profile-avatar-wrapper" id="avatarWrapper">
@@ -268,6 +275,49 @@
         <p class="auth-switch" style="margin-top: 25px;">Нет аккаунта? <span>Создать</span></p>
     </div>
 </div>
+<div id="profileSettingsModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 350px;">
+            <button class="close-btn" id="closeProfileSettingsBtn" style="position: absolute; right: 15px; top: 15px;">×</button>
+            <h3 style="color: #fff; margin-bottom: 25px; text-align: center;">Настройки профиля</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <div class="profile-avatar" id="settingsAvatarPreview" style="width: 90px; height: 90px; margin: 0 auto 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(181, 126, 220, 0.3); border: 2px solid rgba(143, 221, 203, 0.5);">
+                        <i class="fa-solid fa-camera" style="font-size: 24px; color: #8FDDCB; line-height: 86px;"></i>
+                    </div>
+                    <span style="font-size: 13px; color: #B57EDC; cursor: pointer;" id="settingsAvatarText">Изменить фото</span>
+                    <input type="file" id="settingsAvatarInput" accept="image/*" style="display: none;">
+                </div>
+
+                <div>
+                    <label style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 5px; display: block;">Имя</label>
+                    <input type="text" id="settingsNameInput" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(181, 126, 220, 0.3); color: #fff; outline: none; font-family: 'Montserrat', sans-serif;" autocomplete="off">
+                </div>
+
+                <div>
+                    <label style="color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 5px; display: block;">Статус (О себе)</label>
+                    <input type="text" id="settingsBioInput" placeholder="Музыкальный исследователь" style="width: 100%; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(181, 126, 220, 0.3); color: #fff; outline: none; font-family: 'Montserrat', sans-serif;" autocomplete="off">
+                </div>
+
+                <button class="spin-btn" id="saveProfileSettingsBtn" style="width: 100%; margin-top: 15px;">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cropModal" class="glass-modal" style="z-index: 10000;">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 20px;">
+            <h3 style="color: #fff; margin-bottom: 15px; font-size: 16px;">Выберите область</h3>
+            
+            <div style="width: 100%; max-height: 350px; margin-bottom: 20px; background: #000; border-radius: 8px; overflow: hidden;">
+                <img id="cropImage" src="" style="max-width: 100%; display: block;">
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="spin-btn" id="cancelCropBtn" style="background: rgba(255,255,255,0.1); color: #fff; flex: 1;">Отмена</button>
+                <button class="spin-btn" id="applyCropBtn" style="flex: 1;">Применить</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>

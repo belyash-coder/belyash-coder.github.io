@@ -766,37 +766,41 @@ const avatarPlaceholderIcon = document.getElementById("avatarPlaceholderIcon");
 const avatarEditOverlay = document.getElementById("avatarEditOverlay");
 const logoutBtn = document.getElementById("logoutBtn");
 const loginFromProfileBtn = document.getElementById("loginFromProfileBtn");
+const openProfileSettingsBtn = document.getElementById("openProfileSettingsBtn");
 
 // Функция мгновенного обновления интерфейса
 function updateProfileUI(user) {
     if (user) {
-        // Пользователь успешно авторизован
         if (profileNameDisplay) profileNameDisplay.textContent = user.displayName || "Пользователь";
-        if (profileEmailDisplay) profileEmailDisplay.textContent = user.email || "Музыкальный исследователь";
         
-        // Ставим гугловскую аватарку
-        if (user.photoURL && profileAvatar) {
-            profileAvatar.style.backgroundImage = `url('${user.photoURL}')`;
+        // Читаем кастомный статус из памяти
+        const savedBio = localStorage.getItem(`userBio_${user.uid}`);
+        if (profileEmailDisplay) profileEmailDisplay.textContent = savedBio || user.email || "Музыкальный исследователь";
+        
+        // Проверяем, есть ли обрезанная аватарка в памяти, иначе берем из Google
+        const customAvatar = localStorage.getItem(`userAvatar_${user.uid}`);
+        const finalAvatarUrl = customAvatar || user.photoURL;
+        
+        if (finalAvatarUrl && profileAvatar) {
+            profileAvatar.style.backgroundImage = `url('${finalAvatarUrl}')`;
             if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "none";
-            if (avatarEditOverlay) avatarEditOverlay.style.display = "none"; // Камеру убираем, аватар из Google
+            if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
         }
 
-        // Переключаем кнопки
         if (logoutBtn) logoutBtn.style.display = "flex";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "none";
+        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "block"; // Показываем шестеренку
     } else {
-        // Режим гостя
         if (profileNameDisplay) profileNameDisplay.textContent = "Гость";
         if (profileEmailDisplay) profileEmailDisplay.textContent = "Неавторизованный пользователь";
         
-        // Возвращаем иконку космонавта
         if (profileAvatar) profileAvatar.style.backgroundImage = "none";
         if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "block";
-        if (avatarEditOverlay) avatarEditOverlay.style.display = "none"; // Камеру скрываем, пока гость
+        if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
 
-        // Переключаем кнопки
         if (logoutBtn) logoutBtn.style.display = "none";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "flex";
+        if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "none"; // Прячем шестеренку
     }
 }
 
@@ -807,41 +811,157 @@ if (typeof firebase !== 'undefined' && firebase.auth) {
     });
 }
 
-// 2. ЛОГИКА КНОПКИ "ВЫЙТИ"
+// 2. ЛОГИКА КНОПОК "ВЫЙТИ" И "ВОЙТИ"
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().signOut().then(() => {
-                console.log("✅ Успешный выход из аккаунта");
-                // Можно добавить очистку избранного из экрана, если потребуется
-            }).catch((error) => {
-                console.error("❌ Ошибка при выходе:", error);
-            });
+            firebase.auth().signOut().catch(error => console.error("❌ Ошибка при выходе:", error));
         }
     });
 }
-
-// 3. ЛОГИКА КНОПКИ "ВОЙТИ" (Из экрана профиля)
 if (loginFromProfileBtn) {
     loginFromProfileBtn.addEventListener("click", () => {
         const authModal = document.getElementById("authModal");
         if (authModal) authModal.classList.add("active");
     });
 }
-// --- ЛОГИКА ЗАКРЫТИЯ ОКНА ЖАНРА ---
-if (typeof genreModal !== 'undefined' && genreModal) {
-    // Закрытие по крестику
-    if (typeof closeModalBtn !== 'undefined' && closeModalBtn) {
-        closeModalBtn.addEventListener("click", () => {
-            genreModal.classList.remove("active");
-        });
-    }
 
-    // Закрытие по клику на темный фон вокруг окна
-    genreModal.addEventListener("click", (e) => {
-        if (e.target === genreModal) {
-            genreModal.classList.remove("active");
+// ==========================================
+// 3. ЛОГИКА НАСТРОЕК ПРОФИЛЯ И ОБРЕЗКИ ФОТО
+// ==========================================
+const profileSettingsModal = document.getElementById("profileSettingsModal");
+const closeProfileSettingsBtn = document.getElementById("closeProfileSettingsBtn");
+const settingsNameInput = document.getElementById("settingsNameInput");
+const settingsBioInput = document.getElementById("settingsBioInput");
+const saveProfileSettingsBtn = document.getElementById("saveProfileSettingsBtn");
+
+const settingsAvatarPreview = document.getElementById("settingsAvatarPreview");
+const settingsAvatarInput = document.getElementById("settingsAvatarInput");
+const settingsAvatarText = document.getElementById("settingsAvatarText");
+
+const cropModal = document.getElementById("cropModal");
+const cropImage = document.getElementById("cropImage");
+const cancelCropBtn = document.getElementById("cancelCropBtn");
+const applyCropBtn = document.getElementById("applyCropBtn");
+
+let cropper = null;
+let tempCroppedBase64 = null; // Временное хранение до нажатия "Сохранить"
+
+// Открытие окна настроек (привяжем и к шестеренке, и к самой аватарке профиля для удобства)
+const openSettings = () => {
+    const user = firebase.auth().currentUser;
+    if (user && profileSettingsModal) {
+        settingsNameInput.value = user.displayName || "";
+        settingsBioInput.value = localStorage.getItem(`userBio_${user.uid}`) || "";
+        
+        const currentAvatar = localStorage.getItem(`userAvatar_${user.uid}`) || user.photoURL;
+        if (currentAvatar) {
+            settingsAvatarPreview.style.backgroundImage = `url('${currentAvatar}')`;
+            settingsAvatarPreview.innerHTML = ""; 
         }
+        
+        tempCroppedBase64 = null; // Сбрасываем временное фото
+        profileSettingsModal.classList.add("active");
+    }
+};
+
+if (openProfileSettingsBtn) openProfileSettingsBtn.addEventListener("click", openSettings);
+if (profileAvatar) profileAvatar.addEventListener("click", () => {
+    // Открываем настройки по клику на аватар, только если авторизован
+    if (firebase.auth().currentUser) openSettings();
+});
+
+if (closeProfileSettingsBtn) {
+    closeProfileSettingsBtn.addEventListener("click", () => profileSettingsModal.classList.remove("active"));
+}
+
+// Выбор фото из галереи
+const triggerFileInput = () => settingsAvatarInput.click();
+if (settingsAvatarPreview) settingsAvatarPreview.addEventListener("click", triggerFileInput);
+if (settingsAvatarText) settingsAvatarText.addEventListener("click", triggerFileInput);
+
+if (settingsAvatarInput) {
+    settingsAvatarInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                // Показываем окно обрезки
+                cropImage.src = event.target.result;
+                cropModal.classList.add("active");
+                
+                // Инициализируем или перезапускаем Cropper.js
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 1, // Фиксируем квадрат для аватарки
+                    viewMode: 1,
+                    background: false,
+                    zoomable: true
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = ""; // Сбрасываем input, чтобы можно было выбрать тот же файл снова
+    });
+}
+
+// Отмена обрезки
+if (cancelCropBtn) {
+    cancelCropBtn.addEventListener("click", () => {
+        cropModal.classList.remove("active");
+        if (cropper) cropper.destroy();
+    });
+}
+
+// Применение обрезки
+if (applyCropBtn) {
+    applyCropBtn.addEventListener("click", () => {
+        if (cropper) {
+            // Генерируем легкий квадрат 300x300 в формате JPEG для быстрой загрузки
+            const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+            tempCroppedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+            
+            // Показываем результат в окне настроек
+            settingsAvatarPreview.style.backgroundImage = `url('${tempCroppedBase64}')`;
+            settingsAvatarPreview.innerHTML = ""; 
+            
+            cropModal.classList.remove("active");
+            cropper.destroy();
+        }
+    });
+}
+
+// Сохранение всех настроек
+if (saveProfileSettingsBtn) {
+    saveProfileSettingsBtn.addEventListener("click", () => {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        const newName = settingsNameInput.value.trim();
+        const newBio = settingsBioInput.value.trim();
+        
+        const originalBtnText = saveProfileSettingsBtn.innerText;
+        saveProfileSettingsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Сохранение...`;
+        saveProfileSettingsBtn.style.pointerEvents = "none";
+
+        // Сохраняем статус и фото в память по UID
+        if (newBio) localStorage.setItem(`userBio_${user.uid}`, newBio);
+        if (tempCroppedBase64) localStorage.setItem(`userAvatar_${user.uid}`, tempCroppedBase64);
+
+        // Обновляем имя в самом Firebase
+        user.updateProfile({
+            displayName: newName || user.displayName
+        }).then(() => {
+            profileSettingsModal.classList.remove("active");
+            updateProfileUI(user); // Перерисовываем профиль
+            
+            saveProfileSettingsBtn.innerText = originalBtnText;
+            saveProfileSettingsBtn.style.pointerEvents = "auto";
+        }).catch(error => {
+            console.error("Ошибка обновления:", error);
+            saveProfileSettingsBtn.innerText = originalBtnText;
+            saveProfileSettingsBtn.style.pointerEvents = "auto";
+        });
     });
 }
 // --- ЛОГИКА ИЗБРАННОГО (FAVORITES) ---
