@@ -2456,3 +2456,65 @@ body.theme-light .seek-bar-container {
         box-shadow: none !important;
     }
 }
+/* ==========================================
+   РАДИКАЛЬНАЯ ОПТИМИЗАЦИЯ ДЛЯ МОБИЛЬНЫХ (ПРОТИВ ЛАГОВ)
+   ========================================== */
+@media (max-width: 768px) {
+    /* Полностью убиваем размытие фона на телефонах. Именно оно сжирает FPS! */
+    .glass-modal, 
+    .theme-card, 
+    .search-result-card, 
+    .app-view, 
+    .modal-content, 
+    #sidebarMenu {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        /* Заменяем эффект стекла на стильный темный фон с 95% плотностью */
+        background-color: rgba(20, 15, 28, 0.95) !important; 
+        box-shadow: none !important;
+    }
+}
+
+/* ==========================================
+   УМНОЕ ОКНО ЖАНРА: ФИКСАЦИЯ РАЗМЕРА И СКРОЛЛ ТРЕКОВ
+   ========================================== */
+#genreModal .modal-content {
+    max-height: 85vh !important; /* Окно не может быть выше 85% высоты экрана */
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important; /* Внешнее окно обрезает всё, что вылезает */
+    padding-bottom: 15px; 
+}
+
+/* Описание жанра всегда остается наверху и не сжимается */
+#genreDescription {
+    flex-shrink: 0; 
+    margin-bottom: 15px;
+    max-height: 30vh; /* Если описание гигантское, оно тоже будет скроллиться */
+    overflow-y: auto;
+}
+
+/* Контейнер с музыкой (крутим только его) */
+#spotifyTracksContainer {
+    flex-grow: 1; /* Автоматически занимает всё оставшееся место внутри окна */
+    overflow-y: auto; /* Включаем внутреннюю прокрутку для треков */
+    min-height: 0; /* Обязательный хак для работы скролла внутри flexbox */
+    padding-right: 10px; /* Отступ, чтобы скроллбар не наезжал на текст */
+    margin-right: -5px;
+}
+
+/* Стилизация самого ползунка прокрутки для эстетики */
+#spotifyTracksContainer::-webkit-scrollbar,
+#genreDescription::-webkit-scrollbar {
+    width: 4px;
+}
+#spotifyTracksContainer::-webkit-scrollbar-track,
+#genreDescription::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+#spotifyTracksContainer::-webkit-scrollbar-thumb,
+#genreDescription::-webkit-scrollbar-thumb {
+    background: #8FDDCB; /* Мятный акцент */
+    border-radius: 4px;
+}
