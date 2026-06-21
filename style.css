@@ -2415,3 +2415,23 @@ body.theme-light .seek-bar-container {
     background-color: transparent !important; /* Убираем любой подложечный цвет */
     background-clip: padding-box !important; /* Защита от "вытекания" фона за рамку */
 }
+/* ==========================================
+   МИНИ-АВАТАРКА В НИЖНЕЙ НАВИГАЦИИ
+   ========================================== */
+.nav-profile-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin-bottom: 4px; /* Выравниваем по высоте с остальными иконками */
+    border: 2px solid transparent; 
+    transition: border-color 0.3s ease;
+}
+
+/* Когда вкладка профиля активна, подсвечиваем аватарку мятным */
+.nav-item.active .nav-profile-avatar {
+    border-color: #8FDDCB;
+    box-shadow: 0 0 8px rgba(143, 221, 203, 0.4);
+}

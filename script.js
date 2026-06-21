@@ -82,8 +82,9 @@ fetch('genres_data.json')
 const filterBtn = document.getElementById("filterBtn");
 const filterModal = document.getElementById("filterModal");
 const closeFilterBtn = document.getElementById("closeFilterBtn"); 
-let activeFilter = "all"; 
-let activeRegion = "all"; 
+// Теперь переменные сразу пытаются прочитать память браузера
+let activeFilter = localStorage.getItem("activeFilter") || "all"; 
+let activeRegion = localStorage.getItem("activeRegion") || "all";
 
 // Рулетка и главная страница
 const wheel = document.getElementById("rouletteWheel");
@@ -481,6 +482,25 @@ window.addEventListener("DOMContentLoaded", () => {
     const rChips = document.querySelectorAll(".region-chip");
 
     if (filterBtn && filterModal && closeFilterBtn) {
+        
+        // --- АВТО-АКТИВАЦИЯ СОХРАНЕННЫХ ФИЛЬТРОВ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
+        chips.forEach(chip => {
+            if (chip.getAttribute("data-filter") === activeFilter) {
+                chip.classList.add("active");
+            } else {
+                chip.classList.remove("active");
+            }
+        });
+
+        rChips.forEach(chip => {
+            if (chip.getAttribute("data-region") === activeRegion) {
+                chip.classList.add("active");
+            } else {
+                chip.classList.remove("active");
+            }
+        });
+        // -----------------------------------------------------------------
+
         filterBtn.addEventListener("click", () => {
             if (!isSpinning) filterModal.classList.add("active");
         });
@@ -492,20 +512,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
         if (chips.length > 0) {
             chips.forEach(chip => {
-                chip.addEventListener("click", () => {
+                chip.addEventListener("click", function() {
                     chips.forEach(c => c.classList.remove("active"));
                     chip.classList.add("active");
                     activeFilter = chip.getAttribute("data-filter");
+                    localStorage.setItem("activeFilter", activeFilter); // Сохраняем в память!
                 });
             });
         }
 
         if (rChips.length > 0) {
             rChips.forEach(chip => {
-                chip.addEventListener("click", () => {
+                chip.addEventListener("click", function() {
                     rChips.forEach(c => c.classList.remove("active"));
                     chip.classList.add("active");
                     activeRegion = chip.getAttribute("data-region");
+                    localStorage.setItem("activeRegion", activeRegion); // Сохраняем в память!
                 });
             });
         }
@@ -589,51 +611,60 @@ if (burgerBtn && sidebarMenu && sidebarOverlay) {
         });
     }
 }
-// --- ЛОГИКА ТЕМ ОФОРМЛЕНИЯ ---
+// --- ЛОГИКА ТЕМ ОФОРМЛЕНИЯ С АВТОСОХРАНЕНИЕМ ---
 const menuThemeBtn = document.getElementById("menuTheme");
 const themeModal = document.getElementById("themeModal");
 const closeThemeBtn = document.getElementById("closeThemeBtn");
 const themeCards = document.querySelectorAll(".theme-card");
 
+// 1. ПРИМЕНЯЕМ СОХРАНЕННУЮ ТЕМУ СРАЗУ ПРИ ЗАГРУЗКЕ СКРИПТА
+const savedTheme = localStorage.getItem("appTheme") || "default";
+document.body.classList.remove("theme-light", "theme-lavender");
+if (savedTheme !== "default") {
+    document.body.classList.add(`theme-${savedTheme}`);
+}
+
+// Подсвечиваем нужную карточку темы в меню настроек
+themeCards.forEach(card => {
+    if (card.dataset.theme === savedTheme) {
+        card.classList.add("active");
+    } else {
+        card.classList.remove("active");
+    }
+});
+
+// 2. СЛУШАТЕЛИ КЛИКОВ ПО ТЕМАМ
 if (menuThemeBtn && themeModal) {
-    // Открытие окна тем из бокового меню
     menuThemeBtn.addEventListener("click", (e) => {
-        e.preventDefault(); // Запрещаем ссылке перезагружать страницу
+        e.preventDefault(); 
         
-        // Прячем боковое меню (используем уже существующие классы)
         document.getElementById("sidebarMenu").classList.remove("active");
         document.getElementById("sidebarOverlay").classList.remove("active");
         
-        // Показываем окно тем с небольшой задержкой
         setTimeout(() => {
             themeModal.classList.add("active");
         }, 300);
     });
 
-    // Закрытие окна тем
     closeThemeBtn.addEventListener("click", () => {
         themeModal.classList.remove("active");
     });
 
-    // Смена темы по клику на карточку
     themeCards.forEach(card => {
         card.addEventListener("click", function() {
-            // 1. Убираем зеленую рамку у всех карточек
             themeCards.forEach(c => c.classList.remove("active"));
-            
-            // 2. Делаем активной ту, на которую кликнули
             this.classList.add("active");
             
-            // 3. Берем название темы и вешаем класс на body
             const selectedTheme = this.dataset.theme;
             
-            // Сбрасываем все возможные темы
-            document.body.classList.remove("theme-light", "theme-lavender",);
+            document.body.classList.remove("theme-light", "theme-lavender");
             
-            // Если тема не по умолчанию, добавляем нужный класс
             if (selectedTheme !== "default") {
                 document.body.classList.add(`theme-${selectedTheme}`);
             }
+            
+            // Запоминаем выбор пользователя в памяти браузера
+            localStorage.setItem("appTheme", selectedTheme); 
         });
     });
 }
@@ -788,6 +819,9 @@ const loginFromProfileBtn = document.getElementById("loginFromProfileBtn");
 const openProfileSettingsBtn = document.getElementById("openProfileSettingsBtn");
 
 // Функция мгновенного обновления интерфейса
+const navProfileIcon = document.getElementById("navProfileIcon");
+const navProfileAvatar = document.getElementById("navProfileAvatar");
+
 function updateProfileUI(user) {
     // Находим кнопку авторизации из бокового меню напрямую
     const menuAuthBtn = document.getElementById("sidebarAuthBtn");
@@ -807,6 +841,12 @@ function updateProfileUI(user) {
             profileAvatar.style.backgroundImage = `url('${finalAvatarUrl}')`;
             if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "none";
             if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
+            // Меняем иконку в нижней панели на аватарку
+            if (navProfileAvatar && navProfileIcon) {
+                navProfileAvatar.style.backgroundImage = `url('${finalAvatarUrl}')`;
+                navProfileAvatar.style.display = "block";
+                navProfileIcon.style.display = "none";
+            }
         }
 
         // Логика кнопок профиля
@@ -824,6 +864,11 @@ function updateProfileUI(user) {
         if (profileAvatar) profileAvatar.style.backgroundImage = "none";
         if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "block";
         if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
+        // Возвращаем стандартную иконку в нижнюю панель
+        if (navProfileAvatar && navProfileIcon) {
+            navProfileAvatar.style.display = "none";
+            navProfileIcon.style.display = "block";
+        }
 
         // Логика кнопок профиля
         if (logoutBtn) logoutBtn.style.display = "none";
