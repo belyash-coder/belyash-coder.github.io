@@ -1229,30 +1229,30 @@ const googleAuthBtn = document.getElementById("googleAuthBtn");
 
 if (googleAuthBtn) {
     googleAuthBtn.addEventListener("click", () => {
-        // Проверяем, инициализирован ли Firebase на странице
         if (typeof firebase !== 'undefined' && firebase.auth) {
             const provider = new firebase.auth.GoogleAuthProvider();
             
-            firebase.auth().signInWithPopup(provider)
-                .then((result) => {
-                    console.log("✅ Успешный вход через Google!", result.user);
-                    
-                    // Закрываем окно авторизации
-                    const authModal = document.getElementById("authModal");
-                    if (authModal) authModal.classList.remove("active");
-                    
-                    // Обновляем данные на экране профиля (пример)
-                    const profileName = document.querySelector(".profile-name");
-                    if (profileName && result.user.displayName) {
-                        profileName.textContent = result.user.displayName;
-                    }
-                })
-                .catch((error) => {
-                    console.error("❌ Ошибка при входе через Google:", error.message);
-                });
+            // Определяем, сидит ли юзер с телефона
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // ДЛЯ ТЕЛЕФОНОВ И TELEGRAM: Используем Redirect
+                // Гугл перекинет юзера на страницу входа, а потом вернет обратно к нам.
+                // Наша функция-радар (onAuthStateChanged) сама поймает его после возвращения!
+                firebase.auth().signInWithRedirect(provider);
+            } else {
+                // ДЛЯ ПК: Оставляем красивое всплывающее окно
+                firebase.auth().signInWithPopup(provider)
+                    .then((result) => {
+                        console.log("✅ Вход выполнен!");
+                        const authModal = document.getElementById("authModal");
+                        if (authModal) authModal.classList.remove("active");
+                    })
+                    .catch((error) => {
+                        console.error("❌ Ошибка при входе:", error.message);
+                    });
+            }
         } else {
-            // Заглушка на случай, если Firebase временно не доступен/отключен
-            console.log("🤖 Имитация входа: Firebase Auth не подключен к сети.");
             alert("Запрос на авторизацию Google отправлен (режим разработки)!");
             document.getElementById("authModal").classList.remove("active");
         }
