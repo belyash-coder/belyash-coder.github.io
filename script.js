@@ -915,13 +915,30 @@ if (cancelCropBtn) {
     });
 }
 
-// Применение обрезки
+// Применение обрезки (Идеально круглый кроп)
 if (applyCropBtn) {
     applyCropBtn.addEventListener("click", () => {
         if (cropper) {
-            // Генерируем легкий квадрат 300x300 в формате JPEG для быстрой загрузки
-            const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-            tempCroppedBase64 = canvas.toDataURL("image/jpeg", 0.8);
+            // 1. Получаем базовый квадратный холст от Cropper
+            const squareCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+            
+            // 2. Создаем свой виртуальный холст для физического вырезания круга
+            const roundCanvas = document.createElement('canvas');
+            roundCanvas.width = 300;
+            roundCanvas.height = 300;
+            const ctx = roundCanvas.getContext('2d');
+            
+            // 3. Создаем круглую маску
+            ctx.beginPath();
+            ctx.arc(150, 150, 150, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.clip(); // Всё, что за пределами этого круга, будет отсечено
+            
+            // 4. Вставляем наше фото ровно в этот круг
+            ctx.drawImage(squareCanvas, 0, 0, 300, 300);
+            
+            // 5. ВАЖНО: Сохраняем в PNG! (JPEG сделает прозрачные углы черными)
+            tempCroppedBase64 = roundCanvas.toDataURL("image/png");
             
             // Показываем результат в окне настроек
             settingsAvatarPreview.style.backgroundImage = `url('${tempCroppedBase64}')`;

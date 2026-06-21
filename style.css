@@ -2405,3 +2405,13 @@ body.theme-light .seek-bar-container {
     background-position: center !important;
     background-repeat: no-repeat !important;
 }
+/* ==========================================
+   ЖЕСТКОЕ СКРУГЛЕНИЕ АВАТАРОК
+   ========================================== */
+.profile-avatar, 
+#settingsAvatarPreview {
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    background-color: transparent !important; /* Убираем любой подложечный цвет */
+    background-clip: padding-box !important; /* Защита от "вытекания" фона за рамку */
+}
