@@ -1567,13 +1567,17 @@ const SPOTIFY_API_BASE = 'https://api.s-p-o-t-i-f-y.com/v1'.replace(/-/g, '');
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 1. Получение токена (через прокси)
+// 1. Получение токена (Используем резервный мост для обхода CORS)
 async function getSpotifyAccessToken() {
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
     }
 
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
+    
+    // Используем резервный прокси thingproxy
+    const targetUrl = 'https://accounts.spotify.com/api/token';
+    const proxyUrl = 'https://thingproxy.freeboard.io/fetch/' + targetUrl;
     
     try {
         const response = await fetch(proxyUrl, {
@@ -1585,14 +1589,18 @@ async function getSpotifyAccessToken() {
             body: 'grant_type=client_credentials'
         });
         
-        if (!response.ok) throw new Error("Прокси или сервер отклонили запрос");
+        if (!response.ok) {
+            // Выводим ошибку в консоль в эстетике проекта
+            console.log('%c Ошибка Spotify ', 'background: #140f1c; color: #8FDDCB;', response.status);
+            return null;
+        }
         
         const data = await response.json();
         spotifyToken = data.access_token;
         tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
         return spotifyToken;
     } catch (error) {
-        console.error("Ошибка получения токена Spotify:", error);
+        console.error("Ошибка сети при получении токена:", error);
         return null;
     }
 }
