@@ -1626,8 +1626,40 @@ async function openArtistProfile(artistName) {
         
         // ... далее твоя логика отрисовки ...
         
+    // 2. Треки (выносим в отдельный блок для безопасности)
+        try {
+            const tracksRes = await fetch(`https://api.spotify.com/v1/search?q=$${artist.id}/top-tracks?market=US`, { headers });
+            const tracksData = await tracksRes.json();
+            
+            if (tracksData.tracks) {
+                document.getElementById("artistTopTracksContainer").innerHTML = tracksData.tracks.slice(0, 5).map(track => `
+                    <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.album.images[0]?.url || ''}'); background-size: cover; margin-right: 12px;"></div>
+                        <div style="flex-grow: 1; padding: 0 10px;">
+                            <div style="color: #fff; font-size: 13px;">${track.name}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) { console.warn("Треки не загрузились", e); }
+
+        // 3. Похожие (выносим в отдельный блок для безопасности)
+        try {
+            const relatedRes = await fetch(`https://api.spotify.com/v1/search?q=$${artist.id}/related-artists`, { headers });
+            const relatedData = await relatedRes.json();
+            
+            if (relatedData.artists) {
+                document.getElementById("relatedArtistsContainer").innerHTML = relatedData.artists.slice(0, 5).map(rel => `
+                    <div class="related-artist-card" onclick="openArtistProfile('${rel.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                        <div class="related-artist-photo" style="background-image: url('${rel.images[0]?.url || ''}')"></div>
+                        <div class="related-artist-name">${rel.name}</div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) { console.warn("Похожие не загрузились", e); }
+
     } catch (e) {
-        console.error("Ошибка загрузки:", e);
+        console.error("Ошибка:", e);
         document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
     }
 }
