@@ -1608,16 +1608,20 @@ async function openArtistProfile(artistName) {
     if (!token) return;
 
     try {
-        // Мы используем константу без всяких префиксов, чтобы фильтр чата не трогал её
-        const endpoint = "api.spotify.com/v1";
-        const headers = { 'Authorization': 'Bearer ' + token };
-
-        // Используем относительный путь через CORS-прокси (без http-префикса, чтобы фильтр не видел ссылку)
-        const proxyUrl = "https://corsproxy.io/?";
-        const baseUrl = "https://" + endpoint;
-
-        const searchRes = await fetch(proxyUrl + encodeURIComponent(`${baseUrl}/search?q=${artistName}&type=artist&limit=1`), { headers });
-        const searchData = await searchRes.json();
+        // Используем другой прокси-сервис для проверки
+        const proxyUrl = "https://api.allorigins.win/get?url=";
+        const apiTarget = encodeURIComponent("https://api.spotify.com/v1/search?q=" + encodeURIComponent(artistName) + "&type=artist&limit=1");
+        
+        const res = await fetch(proxyUrl + apiTarget, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        const responseData = await res.json();
+        // Распаковываем ответ от allorigins
+        const searchData = JSON.parse(responseData.contents);
+        
+        // --- ДИАГНОСТИКА: Что реально пришло ---
+        console.log("Ответ от Spotify:", searchData);
         
         if (!searchData.artists || !searchData.artists.items.length) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
@@ -1627,9 +1631,10 @@ async function openArtistProfile(artistName) {
         const artist = searchData.artists.items[0];
         document.getElementById("artistNameDisplay").innerText = artist.name;
         
-        // ... (оставшаяся логика отрисовки)
+        // Далее твоя логика отрисовки...
         
     } catch (e) {
-        console.error("Ошибка:", e);
+        console.error("Критическая ошибка:", e);
+        document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
     }
 }
