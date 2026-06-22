@@ -1553,29 +1553,27 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
-const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
-const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
-
-// Инженерный обход фильтрации: удаляем дефисы на лету
-const SPOTIFY_AUTH_URL = 'https://accounts.s-p-o-t-i-f-y.com/api/token'.replace(/-/g, '');
-const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(SPOTIFY_AUTH_URL);
-const SPOTIFY_API_BASE = 'https://api.s-p-o-t-i-f-y.com/v1'.replace(/-/g, '');
+// Адрес твоего сервера на Render
+const RENDER_SERVER = 'https://belyash-coder-github-io.onrender.com';
+const URL_API = 'https://api.spotify.com/v1';
 
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// Замени URL на адрес твоего сервиса на Render (например, https://my-app.onrender.com)
-const RENDER_SERVER_URL = 'ТВОЙ_АДРЕС_С_RENDER.onrender.com';
-
+// 1. Получение токена через твой личный сервер на Render
 async function getSpotifyAccessToken() {
-    if (spotifyToken && Date.now() < tokenExpirationTime) return spotifyToken;
+    if (spotifyToken && Date.now() < tokenExpirationTime) {
+        return spotifyToken;
+    }
 
     try {
-        // Мы просим токен у НАШЕГО сервера, который не блокируется
-        const response = await fetch(`${RENDER_SERVER_URL}/get-token`);
+        const response = await fetch(`${RENDER_SERVER}/get-token`);
+        if (!response.ok) throw new Error("Сервер не вернул токен");
+        
         const data = await response.json();
         spotifyToken = data.access_token;
         tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
@@ -1586,11 +1584,10 @@ async function getSpotifyAccessToken() {
     }
 }
 
-// 2. Глобальные переменные для модального окна артиста
+// 2. Глобальные переменные для окна артиста
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
-// Обработчик закрытия окна
 if (closeArtistBtn && artistModal) {
     closeArtistBtn.addEventListener("click", () => {
         artistModal.classList.remove("active");
@@ -1604,15 +1601,8 @@ if (closeArtistBtn && artistModal) {
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
 
-    // Показываем прелоадер
-    document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
-    document.getElementById("artistFollowers").innerHTML = "";
-    document.getElementById("artistGenresContainer").innerHTML = "";
+    document.getElementById("artistNameDisplay").innerText = "Ищем...";
     document.getElementById("artistTopTracksContainer").innerHTML = '<div style="text-align: center; color: #8FDDCB;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
-    document.getElementById("relatedArtistsContainer").innerHTML = "";
-    document.getElementById("artistHeader").style.backgroundImage = "none";
-    document.getElementById("artistAvatar").style.backgroundImage = "none";
-    
     artistModal.classList.add("active");
 
     const token = await getSpotifyAccessToken();
@@ -1623,8 +1613,8 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // ЗАПРОС 1: Ищем артиста
-        const searchRes = await fetch(`${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
+        // Поиск артиста
+        const searchRes = await fetch(`${URL_API}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
@@ -1637,74 +1627,49 @@ async function openArtistProfile(artistName) {
 
         const artist = searchData.artists.items[0];
         const artistId = artist.id;
-        const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
-
-        // ЗАЩИТА: Проверка на отсутствие подписчиков
-        const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
-
-        // Отрисовка шапки
+        
+        // Рендер данных
         document.getElementById("artistNameDisplay").innerText = artist.name;
-        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${followersCount.toLocaleString('ru-RU')} подписчиков`;
-        if (imageUrl) {
-            document.getElementById("artistHeader").style.backgroundImage = `url('${imageUrl}')`;
-            document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
+        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${(artist.followers?.total || 0).toLocaleString('ru-RU')} подписчиков`;
+        
+        if (artist.images.length > 0) {
+            document.getElementById("artistHeader").style.backgroundImage = `url('${artist.images[0].url}')`;
+            document.getElementById("artistAvatar").style.backgroundImage = `url('${artist.images[0].url}')`;
         }
 
-        // ЗАЩИТА: Если у артиста нет жанров, подставляем пустой массив
-        const safeGenres = artist.genres || [];
-        const genresHtml = safeGenres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
-        document.getElementById("artistGenresContainer").innerHTML = genresHtml;
+        document.getElementById("artistGenresContainer").innerHTML = (artist.genres || []).map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
 
-        // ЗАПРОС 2: Топ-10 треков
-        const tracksRes = await fetch(`${SPOTIFY_API_BASE}/artists/${artistId}/top-tracks?market=US`, {
+        // Треки
+        const tracksRes = await fetch(`${URL_API}/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const tracksData = await tracksRes.json();
         
-        let tracksHtml = '';
-        if (tracksData.tracks) {
-            tracksData.tracks.slice(0, 5).forEach(track => {
-                const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
-                tracksHtml += `
-                    <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                        <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${trackCover}'); background-size: cover; margin-right: 12px;"></div>
-                        <div style="flex-grow: 1; overflow: hidden;">
-                            <div style="color: #fff; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</div>
-                            <div style="color: rgba(168,159,205,0.7); font-size: 11px;">${track.album.name}</div>
-                        </div>
-                        ${track.preview_url ? 
-                            `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>` : 
-                            `<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>`
-                        }
-                    </div>
-                `;
-            });
-        }
-        document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
+        document.getElementById("artistTopTracksContainer").innerHTML = (tracksData.tracks || []).slice(0, 5).map(track => `
+            <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.album.images[0]?.url}'); background-size: cover; margin-right: 12px;"></div>
+                <div style="flex-grow: 1; overflow: hidden;">
+                    <div style="color: #fff; font-size: 13px;">${track.name}</div>
+                </div>
+                ${track.preview_url ? `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px;"><i class="fa-solid fa-circle-play"></i></a>` : ''}
+            </div>
+        `).join('');
 
-        // ЗАПРОС 3: Похожие артисты
-        const relatedRes = await fetch(`${SPOTIFY_API_BASE}/artists/${artistId}/related-artists`, {
+        // Похожие артисты
+        const relatedRes = await fetch(`${URL_API}/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const relatedData = await relatedRes.json();
         
-        let relatedHtml = '';
-        if (relatedData.artists) {
-            relatedData.artists.slice(0, 10).forEach(relArtist => {
-                const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
-                relatedHtml += `
-                    <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
-                        <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
-                        <div class="related-artist-name">${relArtist.name}</div>
-                    </div>
-                `;
-            });
-        }
-        document.getElementById("relatedArtistsContainer").innerHTML = relatedHtml;
+        document.getElementById("relatedArtistsContainer").innerHTML = (relatedData.artists || []).slice(0, 10).map(rel => `
+            <div class="related-artist-card" onclick="openArtistProfile('${rel.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                <div class="related-artist-photo" style="background-image: url('${rel.images[0]?.url}')"></div>
+                <div class="related-artist-name">${rel.name}</div>
+            </div>
+        `).join('');
 
     } catch (error) {
-        console.error("Ошибка при загрузке профиля артиста:", error);
+        console.error("Ошибка:", error);
         document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
-        document.getElementById("artistTopTracksContainer").innerHTML = "";
     }
 }
