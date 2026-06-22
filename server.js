@@ -21,3 +21,13 @@ app.get('/get-token', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000);
+app.get('/spotify-search', async (req, res) => {
+    const { q } = req.query;
+    const token = req.headers.authorization;
+    try {
+        const response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=artist&limit=1`, {
+            headers: { 'Authorization': token }
+        });
+        res.json(response.data);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});

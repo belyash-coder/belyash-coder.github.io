@@ -1600,7 +1600,6 @@ if (closeArtistBtn && artistModal) {
 // 3. Главная функция генерации карточки
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
-
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     artistModal.classList.add("active");
 
@@ -1608,33 +1607,27 @@ async function openArtistProfile(artistName) {
     if (!token) return;
 
     try {
-        // Используем другой прокси-сервис для проверки
-        const proxyUrl = "https://api.allorigins.win/get?url=";
-        const apiTarget = encodeURIComponent("https://api.spotify.com/v1/search?q=" + encodeURIComponent(artistName) + "&type=artist&limit=1");
+        // Твой личный сервер на Render
+        const RENDER_URL = "https://belyash-coder-github-io.onrender.com";
         
-        const res = await fetch(proxyUrl + apiTarget, {
+        const res = await fetch(`${RENDER_URL}/spotify-search?q=${encodeURIComponent(artistName)}`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         
-        const responseData = await res.json();
-        // Распаковываем ответ от allorigins
-        const searchData = JSON.parse(responseData.contents);
-        
-        // --- ДИАГНОСТИКА: Что реально пришло ---
-        console.log("Ответ от Spotify:", searchData);
+        const searchData = await res.json();
         
         if (!searchData.artists || !searchData.artists.items.length) {
-            document.getElementById("artistNameDisplay").innerText = "Не найдено";
+            document.getElementById("artistNameDisplay").innerText = "Артист не найден";
             return;
         }
 
         const artist = searchData.artists.items[0];
         document.getElementById("artistNameDisplay").innerText = artist.name;
         
-        // Далее твоя логика отрисовки...
+        // ... далее твоя логика отрисовки ...
         
     } catch (e) {
-        console.error("Критическая ошибка:", e);
+        console.error("Ошибка загрузки:", e);
         document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
     }
 }
