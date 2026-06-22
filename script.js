@@ -1568,7 +1568,7 @@ async function getSpotifyAccessToken() {
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
     
     try {
-        // ОФИЦИАЛЬНЫЙ URL АВТОРИЗАЦИИ SPOTIFY
+        // Официальный домен для токена
         const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: {
@@ -1587,20 +1587,9 @@ async function getSpotifyAccessToken() {
     }
 }
 
-// 2. Открытие окна и сбор данных
-const artistModal = document.getElementById("artistModal");
-const closeArtistBtn = document.getElementById("closeArtistBtn");
-
-if (closeArtistBtn) {
-    closeArtistBtn.addEventListener("click", () => {
-        artistModal.classList.remove("active");
-        // Останавливаем все превьюшки, если они играют
-        if (currentAudio) currentAudio.pause(); 
-    });
-}
-
 // Главная функция генерации карточки
 async function openArtistProfile(artistName) {
+    // Показываем окно с прелоадером
     document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
     document.getElementById("artistFollowers").innerHTML = "";
     document.getElementById("artistGenresContainer").innerHTML = "";
@@ -1619,7 +1608,7 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // ЗАПРОС 1: Ищем артиста по имени (Официальный URL)
+        // ЗАПРОС 1: Ищем артиста (Официальный домен API и правильный синтаксис)
         const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1635,7 +1624,7 @@ async function openArtistProfile(artistName) {
         const artistId = artist.id;
         const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
 
-        // БЕЗОПАСНАЯ ПРОВЕРКА ПОДПИСЧИКОВ (защита от падения на редких артистах)
+        // Проверка на отсутствие подписчиков
         const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
 
         // Отрисовка шапки
@@ -1650,7 +1639,7 @@ async function openArtistProfile(artistName) {
         const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // ЗАПРОС 2: Топ-10 треков (Официальный URL)
+        // ЗАПРОС 2: Топ-10 треков (Здесь был потерян знак $, теперь исправлено)
         const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1677,7 +1666,7 @@ async function openArtistProfile(artistName) {
         }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // ЗАПРОС 3: Похожие артисты (Официальный URL)
+        // ЗАПРОС 3: Похожие артисты (Здесь тоже исправлен синтаксис URL)
         const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
