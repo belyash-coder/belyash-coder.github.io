@@ -1551,33 +1551,34 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
 const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
 const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
 
-// 1. Неубиваемые ссылки (собираем из частей)
-const URL_AUTH = ["https://", "accounts.", "spotify.", "com", "/api/token"].join("");
-const URL_API = ["https://", "api.", "spotify.", "com", "/v1"].join("");
+// Собираем ссылки по одной букве. Фильтры чата не смогут их распознать и сломать.
+const authPath = ['h','t','t','p','s',':','/','/','a','c','c','o','u','n','t','s','.','s','p','o','t','i','f','y','.','c','o','m','/','a','p','i','/','t','o','k','e','n'].join('');
+const proxyUrl = ['h','t','t','p','s',':','/','/','c','o','r','s','p','r','o','x','y','.','i','o','/','?'].join('') + encodeURIComponent(authPath);
+const URL_API = ['h','t','t','p','s',':','/','/','a','p','i','.','s','p','o','t','i','f','y','.','c','o','m','/','v','1'].join('');
 
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 2. Получение токена (через CORS-прокси)
+// 1. Получение токена (через прокси для обхода ограничений браузера)
 async function getSpotifyAccessToken() {
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
     }
 
-    const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
-    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(URL_AUTH);
+    const authString = btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET);
     
     try {
         const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${authString}`,
+                'Authorization': 'Basic ' + authString,
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: 'grant_type=client_credentials'
@@ -1595,7 +1596,7 @@ async function getSpotifyAccessToken() {
     }
 }
 
-// 3. Глобальные переменные окна
+// 2. Глобальные переменные окна
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
@@ -1608,7 +1609,7 @@ if (closeArtistBtn && artistModal) {
     });
 }
 
-// 4. Главная функция
+// 3. Главная функция
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
 
@@ -1631,9 +1632,10 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // ЗАПРОС 1: Артист
-        const searchRes = await fetch(`${URL_API}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // ЗАПРОС 1: Артист (строгая конкатенация)
+        const searchPath = URL_API + "/search?q=" + encodeURIComponent(artistName) + "&type=artist&limit=1";
+        const searchRes = await fetch(searchPath, {
+            headers: { 'Authorization': 'Bearer ' + token }
         });
         const searchData = await searchRes.json();
         
@@ -1649,19 +1651,20 @@ async function openArtistProfile(artistName) {
         const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
 
         document.getElementById("artistNameDisplay").innerText = artist.name;
-        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${followersCount.toLocaleString('ru-RU')} подписчиков`;
+        document.getElementById("artistFollowers").innerHTML = '<i class="fa-solid fa-users"></i> ' + followersCount.toLocaleString('ru-RU') + ' подписчиков';
         if (imageUrl) {
-            document.getElementById("artistHeader").style.backgroundImage = `url('${imageUrl}')`;
-            document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
+            document.getElementById("artistHeader").style.backgroundImage = "url('" + imageUrl + "')";
+            document.getElementById("artistAvatar").style.backgroundImage = "url('" + imageUrl + "')";
         }
 
         const safeGenres = artist.genres || [];
-        const genresHtml = safeGenres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
+        const genresHtml = safeGenres.map(g => '<span class="artist-genre-pill">' + g + '</span>').join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // ЗАПРОС 2: Треки
-        const tracksRes = await fetch(`${URL_API}/artists/${artistId}/top-tracks?market=US`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // ЗАПРОС 2: Треки (строгая конкатенация)
+        const tracksPath = URL_API + "/artists/" + artistId + "/top-tracks?market=US";
+        const tracksRes = await fetch(tracksPath, {
+            headers: { 'Authorization': 'Bearer ' + token }
         });
         const tracksData = await tracksRes.json();
         
@@ -1677,8 +1680,8 @@ async function openArtistProfile(artistName) {
                             <div style="color: rgba(168,159,205,0.7); font-size: 11px;">${track.album.name}</div>
                         </div>
                         ${track.preview_url ? 
-                            `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>` : 
-                            `<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>`
+                            '<a href="' + track.preview_url + '" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>' : 
+                            '<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>'
                         }
                     </div>
                 `;
@@ -1686,9 +1689,10 @@ async function openArtistProfile(artistName) {
         }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // ЗАПРОС 3: Похожие артисты
-        const relatedRes = await fetch(`${URL_API}/artists/${artistId}/related-artists`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // ЗАПРОС 3: Похожие артисты (строгая конкатенация)
+        const relatedPath = URL_API + "/artists/" + artistId + "/related-artists";
+        const relatedRes = await fetch(relatedPath, {
+            headers: { 'Authorization': 'Bearer ' + token }
         });
         const relatedData = await relatedRes.json();
         
@@ -1696,8 +1700,9 @@ async function openArtistProfile(artistName) {
         if (relatedData.artists) {
             relatedData.artists.slice(0, 10).forEach(relArtist => {
                 const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
+                const relName = relArtist.name.replace(/'/g, "\\'");
                 relatedHtml += `
-                    <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                    <div class="related-artist-card" onclick="openArtistProfile('${relName}')" style="cursor: pointer;">
                         <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
                         <div class="related-artist-name">${relArtist.name}</div>
                     </div>
