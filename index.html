@@ -163,6 +163,9 @@
             </div>
             
             <div class="genre-description" id="genreDescription"></div>
+            <a id="spotifySearchBtn" href="#" target="_blank" class="spin-btn" style="display: none; margin-top: 15px; margin-bottom: 20px; text-decoration: none; background: #1DB954; color: #140f1c; font-weight: bold; font-size: 14px; text-align: center; border: none; box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);">
+                <i class="fa-brands fa-spotify" style="margin-right: 8px; font-size: 18px;"></i> Искать на Spotify
+            </a>
             <div id="spotifyTracksContainer">
                 <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">
                     <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: #8FDDCB; margin-bottom: 10px;"></i>
@@ -361,6 +364,32 @@
             <a href="https://boosty.to/твой_профиль" target="_blank" class="spin-btn" style="display: block; text-decoration: none; background: linear-gradient(135deg, #f15f2c, #e53935);">
                 <i class="fa-solid fa-bolt"></i> Поддержать на Boosty
             </a>
+        </div>
+    </div>
+    <div id="artistModal" class="glass-modal">
+        <div class="modal-content" style="max-width: 450px; padding: 0; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <button class="close-btn" id="closeArtistBtn" style="position: absolute; right: 15px; top: 15px; z-index: 10;">×</button>
+            
+            <div id="artistHeader" class="artist-header-bg">
+                <div class="artist-header-overlay">
+                    <div id="artistAvatar" class="artist-avatar"></div>
+                    <h2 id="artistNameDisplay" style="color: #fff; margin: 10px 0 5px 0; text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Загрузка...</h2>
+                    <p id="artistFollowers" style="color: #8FDDCB; font-size: 12px; margin: 0; text-align: center;"><i class="fa-solid fa-users"></i> ... подписчиков</p>
+                </div>
+            </div>
+
+            <div style="padding: 20px; overflow-y: auto; flex-grow: 1;" id="artistScrollArea">
+                <div id="artistGenresContainer" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 25px;">
+                    </div>
+
+                <h4 style="color: #fff; margin-bottom: 15px; font-size: 16px;"><i class="fa-brands fa-spotify" style="color: #1DB954;"></i> Популярные треки</h4>
+                <div id="artistTopTracksContainer" style="margin-bottom: 25px;">
+                    </div>
+
+                <h4 style="color: #fff; margin-bottom: 15px; font-size: 16px;"><i class="fa-solid fa-record-vinyl"></i> Похожие исполнители</h4>
+                <div id="relatedArtistsContainer" class="related-artists-carousel">
+                    </div>
+            </div>
         </div>
     </div>
 

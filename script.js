@@ -232,6 +232,12 @@ let currentPlayBtn = null;
 // === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
 // === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
 function renderTracksInModal(genreName) {
+    // Обновляем кнопку Spotify
+    const spotifySearchBtn = document.getElementById("spotifySearchBtn");
+    if (spotifySearchBtn) {
+        spotifySearchBtn.style.display = "block";
+        spotifySearchBtn.href = "https://open.spotify.com/search/" + encodeURIComponent(genreName);
+    }
     const container = document.getElementById("spotifyTracksContainer");
     if (!container) return;
 
@@ -272,7 +278,7 @@ function renderTracksInModal(genreName) {
         const card = document.createElement("div");
         card.className = "track-card";
 
-        if (appleId) {
+       if (appleId) {
             // Добавили контейнер сикбара под артиста и настроили flex, чтобы ничего не вылезало за края
             card.innerHTML = `
                 <div class="track-left" style="flex-grow: 1; min-width: 0;">
@@ -281,7 +287,8 @@ function renderTracksInModal(genreName) {
                     </div>
                     <div class="track-info" style="width: 100%;">
                         <div class="track-title">${title}</div>
-                        <div class="track-artist">${artist}</div>
+                        
+                        <div class="track-artist" style="cursor: pointer; color: #8FDDCB; text-decoration: underline; text-decoration-color: rgba(143, 221, 203, 0.3); transition: 0.3s;" onclick="openArtistProfile('${artist.replace(/'/g, "\\'")}')">${artist}</div>
                         
                         <div class="seek-bar-container" id="seek-container-${appleId}">
                             <div class="seek-bar-progress" id="seek-progress-${appleId}"></div>
@@ -712,82 +719,153 @@ if (navLibrary && libraryView) {
 if (navProfile && profileView) {
     navProfile.addEventListener("click", () => switchView(navProfile, profileView));
 }
-// --- ЛОГИКА ПОИСКА (ФИЛЬТРАЦИЯ И ОЧИСТКА) ---
+// --- УМНАЯ ЛОГИКА ПОИСКА (ЖАНРЫ + SPOTIFY) ---
 const searchInput = document.getElementById("genreSearchInput");
 const clearSearchBtn = document.getElementById("clearSearchBtn");
 const searchResultsContainer = document.getElementById("searchResults");
 
-
+let globalSearchTimeout = null;
 
 if (searchInput && clearSearchBtn && searchResultsContainer) {
     
-    // Функция отрисовки результатов
-    function renderSearchResults(query) {
-        searchResultsContainer.innerHTML = ""; // Очищаем старые результаты
+    // Очистка поиска по крестику
+    clearSearchBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        searchResultsContainer.innerHTML = "";
+    });
+
+    searchInput.addEventListener("input", (e) => {
+        const query = e.target.value.trim().toLowerCase();
         
-        if (query.trim().length === 0) return; // Если пусто, ничего не выводим
+        // Сбрасываем таймер при каждом нажатии клавиши
+        clearTimeout(globalSearchTimeout);
         
-        const lowerQuery = query.toLowerCase();
-        // Ищем совпадения и в названии, и в описании
-        const filtered = appGenres.filter(g => 
-            g.name.toLowerCase().includes(lowerQuery) || 
-            g.desc.toLowerCase().includes(lowerQuery)
-        );
-        
-        if (filtered.length === 0) {
-            searchResultsContainer.innerHTML = `<p style="text-align: center; color: rgba(168, 159, 205, 0.5); padding: 20px;">Ничего не найдено</p>`;
+        if (query.length < 2) {
+            searchResultsContainer.innerHTML = "";
             return;
         }
-        
-        // Создаем карточки для найденных жанров
-        filtered.forEach(genre => {
-            const card = document.createElement("div");
-            card.className = "search-result-card";
-            card.innerHTML = `
-                <div class="search-result-info">
-                    <h4>${genre.name}</h4>
-                    <p>${genre.desc}</p>
-                </div>
-                <i class="fa-solid fa-chevron-right search-arrow"></i>
-            `;
-            
-            // Обработчик клика: открываем модальное окно с данными жанра
-            // Обработчик клика: открываем модальное окно с данными жанра
-            card.addEventListener("click", () => {
-                const genreModal = document.getElementById("genreModal");
-                const modalTitle = document.getElementById("modalGenreTitle");
-                const modalDesc = document.getElementById("genreDescription");
-                
-                if (genreModal && modalTitle && modalDesc) {
-                    // Подставляем данные жанра в окно
-                    modalTitle.textContent = genre.name;
-                    modalDesc.textContent = genre.desc;
 
-                    currentModalGenre = genre; // Запоминаем текущий жанр для системы Избранного
+        // Показываем анимацию загрузки
+        searchResultsContainer.innerHTML = '<div style="text-align: center; color: #8FDDCB; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+
+        // Запускаем поиск через 500мс после окончания ввода (Debounce)
+        globalSearchTimeout = setTimeout(async () => {
+            searchResultsContainer.innerHTML = ""; // Убираем спиннер перед выдачей
+
+            // --- 1. ИЩЕМ ПО ЛОКАЛЬНОЙ БАЗЕ ЖАНРОВ (Твоя оригинальная логика) ---
+            const filteredGenres = appGenres.filter(g => 
+                g.name.toLowerCase().includes(query) || 
+                g.desc.toLowerCase().includes(query)
+            ).slice(0, 5); // Берем топ-5, чтобы не перегружать экран
+
+            if (filteredGenres.length > 0) {
+                // Добавляем заголовок секции
+                const genreTitle = document.createElement("h4");
+                genreTitle.style.cssText = "color: rgba(168,159,205,0.6); font-size: 11px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;";
+                genreTitle.innerText = "Жанры";
+                searchResultsContainer.appendChild(genreTitle);
+
+                // Отрисовываем карточки жанров
+                filteredGenres.forEach(genre => {
+                    const card = document.createElement("div");
+                    card.className = "search-result-card";
+                    // Стилизация для бесшовной интеграции
+                    card.style.cssText = "padding: 12px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; border-left: 3px solid #B57EDC; transition: 0.3s; display: flex; justify-content: space-between; align-items: center;";
                     
-                    // Проверяем, залайкан ли он уже
-                    if (typeof modalFavBtn !== 'undefined' && modalFavBtn) {
-                        const isFav = favoriteGenres.some(g => g.name === genre.name);
-                        if (isFav) {
-                            modalFavBtn.classList.add("active");
-                            modalFavBtn.classList.replace("fa-regular", "fa-solid");
-                        } else {
-                            modalFavBtn.classList.remove("active");
-                            modalFavBtn.classList.replace("fa-solid", "fa-regular");
+                    card.innerHTML = `
+                        <div class="search-result-info" style="flex-grow: 1; padding-right: 15px;">
+                            <h4 style="color: #fff; margin: 0 0 5px 0; font-size: 14px;">${genre.name}</h4>
+                            <p style="color: rgba(168,159,205,0.8); font-size: 12px; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${genre.desc}</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right search-arrow" style="color: #8FDDCB;"></i>
+                    `;
+                    
+                    // Твой оригинальный обработчик клика со всеми проверками!
+                    card.addEventListener("click", () => {
+                        const genreModal = document.getElementById("genreModal");
+                        const modalTitle = document.getElementById("modalGenreTitle");
+                        const modalDesc = document.getElementById("genreDescription");
+                        
+                        if (genreModal && modalTitle && modalDesc) {
+                            modalTitle.textContent = genre.name;
+                            modalDesc.textContent = genre.desc;
+
+                            currentModalGenre = genre; 
+                            
+                            if (typeof modalFavBtn !== 'undefined' && modalFavBtn) {
+                                const isFav = favoriteGenres.some(g => g.name === genre.name);
+                                if (isFav) {
+                                    modalFavBtn.classList.add("active");
+                                    modalFavBtn.classList.replace("fa-regular", "fa-solid");
+                                } else {
+                                    modalFavBtn.classList.remove("active");
+                                    modalFavBtn.classList.replace("fa-solid", "fa-regular");
+                                }
+                            }
+
+                            renderTracksInModal(genre.name);
+                            genreModal.classList.add("active");
                         }
-                    }
-
-                    // ---> ВЫЗЫВАЕМ НАШУ НОВУЮ ФУНКЦИЮ ЗАГРУЗКИ ТРЕКОВ <---
-                    renderTracksInModal(genre.name);
+                    });
                     
-                    // Выводим окно на экран
-                    genreModal.classList.add("active");
+                    searchResultsContainer.appendChild(card);
+                });
+            }
+
+            // --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY ---
+            const token = await getSpotifyAccessToken();
+            if (token) {
+                try {
+                    const res = await fetch(`https://api.spotify.com/v1/search?q=$${encodeURIComponent(query)}&type=artist&limit=5`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    const artists = data.artists.items;
+
+                    if (artists.length > 0) {
+                        // Заголовок секции артистов
+                        const artistTitle = document.createElement("h4");
+                        const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
+                        artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
+                        artistTitle.innerText = "Артисты";
+                        searchResultsContainer.appendChild(artistTitle);
+
+                        // Отрисовываем карточки артистов
+                        artists.forEach(artist => {
+                            const img = artist.images.length > 0 ? artist.images[0].url : '';
+                            const artistCard = document.createElement("div");
+                            artistCard.className = "artist-search-card";
+                            artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
+                            
+                            artistCard.innerHTML = `
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                                <div style="flex-grow: 1; overflow: hidden;">
+                                    <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
+                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
+                                </div>
+                            `;
+
+                            // Открываем профиль артиста из Spotify
+                            artistCard.addEventListener("click", () => {
+                                openArtistProfile(artist.name);
+                            });
+
+                            searchResultsContainer.appendChild(artistCard);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Ошибка поиска Spotify:", error);
                 }
-            });
-            
-            searchResultsContainer.appendChild(card);
-        });
-    }
+            }
+
+            // --- 3. ЕСЛИ НИЧЕГО НЕ НАЙДЕНО ВООБЩЕ ---
+            if (searchResultsContainer.innerHTML === "") {
+                searchResultsContainer.innerHTML = '<div style="text-align: center; color: rgba(168,159,205,0.5); padding: 20px; font-size: 14px;">Ничего не найдено</div>';
+            }
+
+        }, 500); 
+    });
+}
 
     // Слушаем ввод текста
     searchInput.addEventListener("input", (e) => {
@@ -807,7 +885,7 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
         searchResultsContainer.innerHTML = ""; // Убираем результаты
         searchInput.focus();
     });
-}
+
 // --- ЛОГИКА ПРОФИЛЯ И FIREBASE AUTH ---
 const profileNameDisplay = document.getElementById("profileNameDisplay");
 const profileEmailDisplay = document.getElementById("profileEmailDisplay");
@@ -1259,6 +1337,75 @@ if (googleAuthBtn) {
     });
 }
 // ==========================================
+// ЛОГИКА АВТОРИЗАЦИИ EMAIL/PASSWORD (УМНАЯ КНОПКА "ПРОДОЛЖИТЬ")
+// ==========================================
+const authEmailInput = document.getElementById("emailInput");
+const authPasswordInput = document.getElementById("passwordInput");
+const authContinueBtn = document.querySelector(".auth-btn");
+
+// Динамически создаем элемент для вывода ошибок, чтобы не ломать твой HTML
+const errorMsgDisplay = document.createElement("div");
+errorMsgDisplay.style.cssText = "color: #ff6b6b; font-size: 12px; margin-bottom: 15px; text-align: center; display: none;";
+
+if (authContinueBtn) {
+    // Вставляем блок ошибки прямо перед кнопкой "Продолжить"
+    authContinueBtn.parentNode.insertBefore(errorMsgDisplay, authContinueBtn);
+
+    authContinueBtn.addEventListener("click", () => {
+        const email = authEmailInput.value.trim();
+        const password = authPasswordInput.value;
+        
+        if (!email || !password) {
+            errorMsgDisplay.innerText = "Введите почту и пароль";
+            errorMsgDisplay.style.display = "block";
+            return;
+        }
+        
+        errorMsgDisplay.style.display = "none";
+        const originalBtnText = authContinueBtn.innerText;
+        authContinueBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; // Анимация загрузки
+
+        // ШАГ 1: Пытаемся авторизовать пользователя
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(() => {
+                // Успешный вход
+                document.getElementById("authModal").classList.remove("active");
+                authEmailInput.value = ""; 
+                authPasswordInput.value = "";
+                authContinueBtn.innerText = originalBtnText;
+            })
+            .catch((error) => {
+                // ШАГ 2: Если аккаунта нет - автоматически создаем его
+                if (error.code === 'auth/user-not-found') {
+                    firebase.auth().createUserWithEmailAndPassword(email, password)
+                        .then(() => {
+                            // Успешная регистрация
+                            document.getElementById("authModal").classList.remove("active");
+                            authEmailInput.value = ""; 
+                            authPasswordInput.value = "";
+                            authContinueBtn.innerText = originalBtnText;
+                        })
+                        .catch((regError) => {
+                            authContinueBtn.innerText = originalBtnText;
+                            errorMsgDisplay.style.display = "block";
+                            if (regError.code === 'auth/weak-password') errorMsgDisplay.innerText = "Пароль должен быть не менее 6 символов.";
+                            else if (regError.code === 'auth/invalid-email') errorMsgDisplay.innerText = "Некорректный email адрес.";
+                            else errorMsgDisplay.innerText = "Ошибка регистрации: " + regError.message;
+                        });
+                } else {
+                    // Обработка других ошибок входа (неверный пароль и т.д.)
+                    authContinueBtn.innerText = originalBtnText;
+                    errorMsgDisplay.style.display = "block";
+                    
+                    if (error.code === 'auth/wrong-password') errorMsgDisplay.innerText = "Неверный пароль.";
+                    else if (error.code === 'auth/invalid-email') errorMsgDisplay.innerText = "Некорректный email адрес.";
+                    else if (error.code === 'auth/user-disabled') errorMsgDisplay.innerText = "Аккаунт заблокирован.";
+                    else errorMsgDisplay.innerText = "Ошибка: " + error.message;
+                }
+            });
+    });
+}
+// ==========================================
 // ЛОГИКА КНОПОК ПОДСКАЗКИ ДЛЯ НЕЗАРЕГИСТРИРОВАННЫХ
 // ==========================================
 const regPromptModal = document.getElementById("registerPromptModal");
@@ -1396,3 +1543,151 @@ if (clearHistoryBtn) {
 }
 
 updateHistoryUI(); // Отрисовываем при старте
+// ==========================================
+// ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
+// ==========================================
+
+// --- НАСТРОЙКИ SPOTIFY (Вставь свои ключи) ---
+const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
+const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
+
+let spotifyToken = null;
+let tokenExpirationTime = 0;
+
+// 1. Получение токена доступа (Client Credentials Flow)
+async function getSpotifyAccessToken() {
+    // Если токен еще жив, возвращаем его
+    if (spotifyToken && Date.now() < tokenExpirationTime) {
+        return spotifyToken;
+    }
+
+    const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
+    
+    try {
+        const response = await fetch('https://accounts.spotify.com/api/token', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${authString}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'grant_type=client_credentials'
+        });
+        const data = await response.json();
+        spotifyToken = data.access_token;
+        // Spotify выдает токен на 3600 секунд (1 час). Ставим запас в 5 минут.
+        tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
+        return spotifyToken;
+    } catch (error) {
+        console.error("Ошибка получения токена Spotify:", error);
+        return null;
+    }
+}
+
+// 2. Открытие окна и сбор данных
+const artistModal = document.getElementById("artistModal");
+const closeArtistBtn = document.getElementById("closeArtistBtn");
+
+if (closeArtistBtn) {
+    closeArtistBtn.addEventListener("click", () => {
+        artistModal.classList.remove("active");
+        // Останавливаем все превьюшки, если они играют
+        if (currentAudio) currentAudio.pause(); 
+    });
+}
+
+// Главная функция генерации карточки
+async function openArtistProfile(artistName) {
+    // Показываем окно с прелоадером
+    document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
+    document.getElementById("artistFollowers").innerHTML = "";
+    document.getElementById("artistGenresContainer").innerHTML = "";
+    document.getElementById("artistTopTracksContainer").innerHTML = '<div style="text-align: center; color: #B57EDC;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+    document.getElementById("relatedArtistsContainer").innerHTML = "";
+    document.getElementById("artistHeader").style.backgroundImage = "none";
+    document.getElementById("artistAvatar").style.backgroundImage = "none";
+    
+    artistModal.classList.add("active");
+
+    const token = await getSpotifyAccessToken();
+    if (!token) return;
+
+    try {
+        // Запрос 1: Ищем артиста по имени
+        const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const searchData = await searchRes.json();
+        
+        if (!searchData.artists.items.length) {
+            document.getElementById("artistNameDisplay").innerText = "Артист не найден";
+            document.getElementById("artistTopTracksContainer").innerHTML = "";
+            return;
+        }
+
+        const artist = searchData.artists.items[0];
+        const artistId = artist.id;
+        const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
+
+        // Отрисовка шапки
+        document.getElementById("artistNameDisplay").innerText = artist.name;
+        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${artist.followers.total.toLocaleString('ru-RU')} подписчиков`;
+        if (imageUrl) {
+            document.getElementById("artistHeader").style.backgroundImage = `url('${imageUrl}')`;
+            document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
+        }
+
+        // Отрисовка жанров
+        const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
+        document.getElementById("artistGenresContainer").innerHTML = genresHtml;
+
+        // Запрос 2: Топ-10 треков
+        const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const tracksData = await tracksRes.json();
+        
+        let tracksHtml = '';
+        // Берем первые 5 топ-треков, чтобы не перегружать модалку
+        tracksData.tracks.slice(0, 5).forEach(track => {
+            const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
+            // Используем структуру наших стандартных карточек треков, но без сикбара для упрощения
+            tracksHtml += `
+                <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${trackCover}'); background-size: cover; margin-right: 12px;"></div>
+                    <div style="flex-grow: 1; overflow: hidden;">
+                        <div style="color: #fff; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</div>
+                        <div style="color: rgba(168,159,205,0.7); font-size: 11px;">${track.album.name}</div>
+                    </div>
+                    ${track.preview_url ? 
+                        `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>` : 
+                        `<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>`
+                    }
+                </div>
+            `;
+        });
+        document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
+
+        // Запрос 3: Похожие артисты
+        const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const relatedData = await relatedRes.json();
+        
+        let relatedHtml = '';
+        relatedData.artists.slice(0, 10).forEach(relArtist => {
+            const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
+            relatedHtml += `
+                <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')">
+                    <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
+                    <div class="related-artist-name">${relArtist.name}</div>
+                </div>
+            `;
+        });
+        document.getElementById("relatedArtistsContainer").innerHTML = relatedHtml;
+
+    } catch (error) {
+        console.error("Ошибка при загрузке профиля артиста:", error);
+        document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
+        document.getElementById("artistTopTracksContainer").innerHTML = "";
+    }
+}

@@ -2518,3 +2518,115 @@ body.theme-light .seek-bar-container {
     background: #8FDDCB; /* Мятный акцент */
     border-radius: 4px;
 }
+/* ==========================================
+   ПОЛЯ ВВОДА ДЛЯ АВТОРИЗАЦИИ
+   ========================================== */
+.auth-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(181, 126, 220, 0.3); /* Лавандовая граница */
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+    border-color: #8FDDCB; /* Мятный акцент при вводе */
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 10px rgba(143, 221, 203, 0.2);
+}
+
+.auth-input::placeholder {
+    color: rgba(168, 159, 205, 0.5);
+}
+/* ==========================================
+   ПРОФИЛЬ АРТИСТА (SPOTIFY API)
+   ========================================== */
+.artist-header-bg {
+    position: relative;
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    /* Базовый лавандовый фон на случай долгой загрузки картинки */
+    background-color: #140f1c; 
+}
+
+.artist-header-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Теплое ламповое затемнение снизу вверх */
+    background: linear-gradient(to top, rgba(20, 15, 28, 1) 5%, rgba(181, 126, 220, 0.2) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 20px;
+}
+
+.artist-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #8FDDCB;
+    box-shadow: 0 0 20px rgba(143, 221, 203, 0.4);
+    background-size: cover;
+    background-position: center;
+    /* Эффект легкого зерна */
+    filter: contrast(1.1) brightness(0.9);
+}
+
+.artist-genre-pill {
+    background: rgba(181, 126, 220, 0.15);
+    border: 1px solid rgba(181, 126, 220, 0.4);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    text-transform: capitalize;
+}
+
+.related-artists-carousel {
+    display: flex;
+    overflow-x: auto;
+    gap: 15px;
+    padding-bottom: 10px;
+    /* Прячем системный скроллбар */
+    scrollbar-width: none; 
+}
+.related-artists-carousel::-webkit-scrollbar { display: none; }
+
+.related-artist-card {
+    min-width: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+.related-artist-card:hover {
+    transform: translateY(-5px);
+}
+.related-artist-photo {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.related-artist-name {
+    color: rgba(168,159,205,0.9);
+    font-size: 11px;
+    text-align: center;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
