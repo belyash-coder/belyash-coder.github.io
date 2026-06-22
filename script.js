@@ -1549,17 +1549,17 @@ if (clearHistoryBtn) {
 updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
-// --- НАСТРОЙКИ SPOTIFY (Вставь свои ключи) ---
 const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
 const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
 
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 1. Получение токена доступа (Client Credentials Flow)
+// 1. Получение токена (Официальный URL)
 async function getSpotifyAccessToken() {
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
@@ -1568,7 +1568,6 @@ async function getSpotifyAccessToken() {
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
     
     try {
-        // Официальный домен для токена
         const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: {
@@ -1587,13 +1586,29 @@ async function getSpotifyAccessToken() {
     }
 }
 
+// 2. Глобальные переменные для модального окна артиста
+const artistModal = document.getElementById("artistModal");
+const closeArtistBtn = document.getElementById("closeArtistBtn");
+
+// Обработчик закрытия окна (Восстановлен!)
+if (closeArtistBtn && artistModal) {
+    closeArtistBtn.addEventListener("click", () => {
+        artistModal.classList.remove("active");
+        if (typeof currentAudio !== 'undefined' && currentAudio) {
+            currentAudio.pause();
+        }
+    });
+}
+
 // Главная функция генерации карточки
 async function openArtistProfile(artistName) {
-    // Показываем окно с прелоадером
+    if (!artistModal) return;
+
+    // Показываем прелоадер (мятный цвет под нашу UI систему)
     document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
     document.getElementById("artistFollowers").innerHTML = "";
     document.getElementById("artistGenresContainer").innerHTML = "";
-    document.getElementById("artistTopTracksContainer").innerHTML = '<div style="text-align: center; color: #B57EDC;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+    document.getElementById("artistTopTracksContainer").innerHTML = '<div style="text-align: center; color: #8FDDCB;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
     document.getElementById("relatedArtistsContainer").innerHTML = "";
     document.getElementById("artistHeader").style.backgroundImage = "none";
     document.getElementById("artistAvatar").style.backgroundImage = "none";
@@ -1608,7 +1623,7 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // ЗАПРОС 1: Ищем артиста (Официальный домен API и правильный синтаксис)
+        // ЗАПРОС 1: Ищем артиста (Официальный URL API и правильный знак $)
         const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1624,7 +1639,7 @@ async function openArtistProfile(artistName) {
         const artistId = artist.id;
         const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
 
-        // Проверка на отсутствие подписчиков
+        // Защита от отсутствия поля followers
         const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
 
         // Отрисовка шапки
@@ -1639,7 +1654,7 @@ async function openArtistProfile(artistName) {
         const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // ЗАПРОС 2: Топ-10 треков (Здесь был потерян знак $, теперь исправлено)
+        // ЗАПРОС 2: Топ-10 треков (Официальный URL API)
         const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1666,7 +1681,7 @@ async function openArtistProfile(artistName) {
         }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // ЗАПРОС 3: Похожие артисты (Здесь тоже исправлен синтаксис URL)
+        // ЗАПРОС 3: Похожие артисты (Официальный URL API)
         const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1677,7 +1692,7 @@ async function openArtistProfile(artistName) {
             relatedData.artists.slice(0, 10).forEach(relArtist => {
                 const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
                 relatedHtml += `
-                    <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')">
+                    <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
                         <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
                         <div class="related-artist-name">${relArtist.name}</div>
                     </div>
