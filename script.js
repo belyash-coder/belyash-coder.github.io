@@ -1609,20 +1609,17 @@ async function openArtistProfile(artistName) {
     const token = await getSpotifyAccessToken();
     if (!token) return;
 
+    // Твой сервер на Render
+    const RENDER_URL = "https://belyash-coder-github-io.onrender.com";
+
     try {
-        const RENDER_URL = "https://belyash-coder-github-io.onrender.com";
-        const headers = { 'Authorization': 'Bearer ' + token };
-
-        // Вспомогательная функция для запроса через твой Render
-        const getViaProxy = async (path) => {
-            const res = await fetch(`${RENDER_URL}/api/proxy?url=${encodeURIComponent(path)}`, { headers });
-            return await res.json();
-        };
-
-        // 1. Поиск
-        const searchData = await getViaProxy("/search?q=" + encodeURIComponent(artistName) + "&type=artist&limit=1");
+        // Запрос через твой прокси
+        const res = await fetch(`${RENDER_URL}/proxy?url=${encodeURIComponent('/search?q=' + encodeURIComponent(artistName) + '&type=artist&limit=1')}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const searchData = await res.json();
         
-        if (!searchData.artists || !searchData.artists.items.length) {
+        if (!searchData.artists?.items.length) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
             return;
         }
@@ -1630,16 +1627,14 @@ async function openArtistProfile(artistName) {
         const artist = searchData.artists.items[0];
         document.getElementById("artistNameDisplay").innerText = artist.name;
 
-        // 2. Треки и Похожие (через тот же прокси)
-        getViaProxy(`/artists/${artist.id}/top-tracks?market=US`).then(data => {
+        // Загрузка треков
+        fetch(`${RENDER_URL}/proxy?url=${encodeURIComponent('/artists/' + artist.id + '/top-tracks?market=US')}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).then(r => r.json()).then(data => {
             if (data.tracks) {
-                document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.slice(0, 5).map(t => `<div>${t.name}</div>`).join('');
-            }
-        });
-
-        getViaProxy(`/artists/${artist.id}/related-artists`).then(data => {
-            if (data.artists) {
-                document.getElementById("relatedArtistsContainer").innerHTML = data.artists.slice(0, 5).map(a => `<div>${a.name}</div>`).join('');
+                document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.slice(0, 5).map(t => `
+                    <div class="track-card"><span>${t.name}</span></div>
+                `).join('');
             }
         });
 
