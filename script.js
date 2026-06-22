@@ -1567,40 +1567,21 @@ const SPOTIFY_API_BASE = 'https://api.s-p-o-t-i-f-y.com/v1'.replace(/-/g, '');
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 1. Получение токена (Используем резервный мост для обхода CORS)
-async function getSpotifyAccessToken() {
-    if (spotifyToken && Date.now() < tokenExpirationTime) {
-        return spotifyToken;
-    }
+// Замени URL на адрес твоего сервиса на Render (например, https://my-app.onrender.com)
+const RENDER_SERVER_URL = 'ТВОЙ_АДРЕС_С_RENDER.onrender.com';
 
-    const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
-    
-    // Используем резервный прокси thingproxy
-    const targetUrl = 'https://accounts.spotify.com/api/token';
-    const proxyUrl = 'https://thingproxy.freeboard.io/fetch/' + targetUrl;
-    
+async function getSpotifyAccessToken() {
+    if (spotifyToken && Date.now() < tokenExpirationTime) return spotifyToken;
+
     try {
-        const response = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${authString}`,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: 'grant_type=client_credentials'
-        });
-        
-        if (!response.ok) {
-            // Выводим ошибку в консоль в эстетике проекта
-            console.log('%c Ошибка Spotify ', 'background: #140f1c; color: #8FDDCB;', response.status);
-            return null;
-        }
-        
+        // Мы просим токен у НАШЕГО сервера, который не блокируется
+        const response = await fetch(`${RENDER_SERVER_URL}/get-token`);
         const data = await response.json();
         spotifyToken = data.access_token;
         tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
         return spotifyToken;
     } catch (error) {
-        console.error("Ошибка сети при получении токена:", error);
+        console.error("Ошибка при получении токена с нашего сервера:", error);
         return null;
     }
 }
