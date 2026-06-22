@@ -1622,7 +1622,7 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // Запрос 1: Ищем артиста по имени (ИСПРАВЛЕН URL)
+        // ЗАПРОС 1: Ищем артиста по имени (Официальный URL)
         const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1650,14 +1650,14 @@ async function openArtistProfile(artistName) {
         const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // Запрос 2: Топ-10 треков (ИСПРАВЛЕН URL)
+        // ЗАПРОС 2: Топ-10 треков (Официальный URL)
         const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const tracksData = await tracksRes.json();
         
         let tracksHtml = '';
-        // Берем первые 5 топ-треков, чтобы не перегружать модалку
+        // Берем первые 5 топ-треков
         if (tracksData.tracks) {
             tracksData.tracks.slice(0, 5).forEach(track => {
                 const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
@@ -1678,7 +1678,7 @@ async function openArtistProfile(artistName) {
         }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // Запрос 3: Похожие артисты (ИСПРАВЛЕН URL)
+        // ЗАПРОС 3: Похожие артисты (Официальный URL)
         const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
