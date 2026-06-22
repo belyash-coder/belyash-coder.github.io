@@ -1545,13 +1545,14 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
 const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
 const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
 
-// Жестко фиксируем официальные адреса API Spotify
+// ЖЕСТКО ФИКСИРУЕМ НАСТОЯЩИЕ АДРЕСА SPOTIFY (БЕЗ ЗАГЛУШЕК)
 const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
@@ -1649,7 +1650,7 @@ async function openArtistProfile(artistName) {
             document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
         }
 
-        // ЗАЩИТА: Если у артиста нет жанров, подставляем пустой массив, чтобы .map() не сломал скрипт
+        // ЗАЩИТА: Если у артиста нет жанров, подставляем пустой массив
         const safeGenres = artist.genres || [];
         const genresHtml = safeGenres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
