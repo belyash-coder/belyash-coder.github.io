@@ -1561,7 +1561,6 @@ let tokenExpirationTime = 0;
 
 // 1. Получение токена доступа (Client Credentials Flow)
 async function getSpotifyAccessToken() {
-    // Если токен еще жив, возвращаем его
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
     }
@@ -1569,7 +1568,7 @@ async function getSpotifyAccessToken() {
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
     
     try {
-        // ИСПРАВЛЕН URL АВТОРИЗАЦИИ
+        // ОФИЦИАЛЬНЫЙ URL АВТОРИЗАЦИИ SPOTIFY
         const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: {
@@ -1580,7 +1579,6 @@ async function getSpotifyAccessToken() {
         });
         const data = await response.json();
         spotifyToken = data.access_token;
-        // Spotify выдает токен на 3600 секунд (1 час). Ставим запас в 5 минут.
         tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
         return spotifyToken;
     } catch (error) {
@@ -1603,7 +1601,6 @@ if (closeArtistBtn) {
 
 // Главная функция генерации карточки
 async function openArtistProfile(artistName) {
-    // Показываем окно с прелоадером
     document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
     document.getElementById("artistFollowers").innerHTML = "";
     document.getElementById("artistGenresContainer").innerHTML = "";
@@ -1638,9 +1635,12 @@ async function openArtistProfile(artistName) {
         const artistId = artist.id;
         const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
 
+        // БЕЗОПАСНАЯ ПРОВЕРКА ПОДПИСЧИКОВ (защита от падения на редких артистах)
+        const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
+
         // Отрисовка шапки
         document.getElementById("artistNameDisplay").innerText = artist.name;
-        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${artist.followers.total.toLocaleString('ru-RU')} подписчиков`;
+        document.getElementById("artistFollowers").innerHTML = `<i class="fa-solid fa-users"></i> ${followersCount.toLocaleString('ru-RU')} подписчиков`;
         if (imageUrl) {
             document.getElementById("artistHeader").style.backgroundImage = `url('${imageUrl}')`;
             document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
@@ -1657,7 +1657,6 @@ async function openArtistProfile(artistName) {
         const tracksData = await tracksRes.json();
         
         let tracksHtml = '';
-        // Берем первые 5 топ-треков
         if (tracksData.tracks) {
             tracksData.tracks.slice(0, 5).forEach(track => {
                 const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
