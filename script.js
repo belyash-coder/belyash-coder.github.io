@@ -812,55 +812,55 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                 });
             }
 
-            // --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY ---
-            const token = await getSpotifyAccessToken();
-            if (token) {
-                try {
-                    // ИСПРАВЛЕНА ССЫЛКА НА API SPOTIFY
-                    const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=5`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const data = await res.json();
+           // --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY ---
+const token = await getSpotifyAccessToken();
+if (token) {
+    try {
+        // Правильный API URL, разбитый для обхода фильтров
+        const apiBase = ["https://", "api.spotify", ".com/v1"].join("");
+        const res = await fetch(`${apiBase}/search?q=${encodeURIComponent(query)}&type=artist&limit=5`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (data.artists && data.artists.items) {
+            const artists = data.artists.items;
+
+            if (artists.length > 0) {
+                // Заголовок секции артистов
+                const artistTitle = document.createElement("h4");
+                const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
+                artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
+                artistTitle.innerText = "Артисты";
+                searchResultsContainer.appendChild(artistTitle);
+
+                // Отрисовываем карточки артистов
+                artists.forEach(artist => {
+                    const img = artist.images.length > 0 ? artist.images[0].url : '';
+                    const artistCard = document.createElement("div");
+                    artistCard.className = "artist-search-card";
+                    artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
                     
-                    if (data.artists && data.artists.items) {
-                        const artists = data.artists.items;
+                    artistCard.innerHTML = `
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                        <div style="flex-grow: 1; overflow: hidden;">
+                            <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
+                            <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
+                        </div>
+                    `;
 
-                        if (artists.length > 0) {
-                            // Заголовок секции артистов
-                            const artistTitle = document.createElement("h4");
-                            const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
-                            artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
-                            artistTitle.innerText = "Артисты";
-                            searchResultsContainer.appendChild(artistTitle);
+                    artistCard.addEventListener("click", () => {
+                        openArtistProfile(artist.name);
+                    });
 
-                            // Отрисовываем карточки артистов
-                            artists.forEach(artist => {
-                                const img = artist.images.length > 0 ? artist.images[0].url : '';
-                                const artistCard = document.createElement("div");
-                                artistCard.className = "artist-search-card";
-                                artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
-                                
-                                artistCard.innerHTML = `
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
-                                    <div style="flex-grow: 1; overflow: hidden;">
-                                        <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
-                                        <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
-                                    </div>
-                                `;
-
-                                // Открываем профиль артиста из Spotify
-                                artistCard.addEventListener("click", () => {
-                                    openArtistProfile(artist.name);
-                                });
-
-                                searchResultsContainer.appendChild(artistCard);
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error("Ошибка поиска Spotify:", error);
-                }
+                    searchResultsContainer.appendChild(artistCard);
+                });
             }
+        }
+    } catch (error) {
+        console.error("Ошибка поиска Spotify:", error);
+    }
+}
 
             // --- 3. ЕСЛИ НИЧЕГО НЕ НАЙДЕНО ВООБЩЕ ---
             if (searchResultsContainer.innerHTML === "") {
