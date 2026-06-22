@@ -5,25 +5,7 @@ const app = express();
 
 app.use(cors());
 
-// Эндпоинт для проксирования запросов
-app.get('/proxy', async (req, res) => {
-    const { url } = req.query; // путь, например: '/search?q=MGMT&type=artist&limit=1'
-    const token = req.headers.authorization;
-    
-    try {
-        const response = await axios.get(`https://api.spotify.com/v1${url}`, {
-            headers: { 'Authorization': token }
-        });
-        res.json(response.data);
-    } catch (e) {
-        res.status(e.response?.status || 500).json({ error: e.message });
-    }
-});
-
-app.listen(process.env.PORT || 3000);
-const axios = require('axios');
-
-// Твой эндпоинт для получения токена
+// Эндпоинт для токена
 app.get('/get-token', async (req, res) => {
     try {
         const auth = Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64');
@@ -36,3 +18,20 @@ app.get('/get-token', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+
+// Эндпоинт для прокси
+app.get('/proxy', async (req, res) => {
+    const { url } = req.query;
+    const token = req.headers.authorization;
+    try {
+        const response = await axios.get('https://api.spotify.com/v1' + url, {
+            headers: { 'Authorization': token }
+        });
+        res.json(response.data);
+    } catch (e) {
+        res.status(e.response?.status || 500).json({ error: e.message });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
