@@ -21,13 +21,16 @@ app.get('/get-token', async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000);
-app.get('/spotify-search', async (req, res) => {
-    const { q } = req.query;
+// Добавь этот эндпоинт на свой сервер
+app.get('/api/proxy', async (req, res) => {
+    const { url } = req.query; // путь к API Spotify
     const token = req.headers.authorization;
     try {
-        const response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=artist&limit=1`, {
+        const response = await axios.get(`https://corsproxy.io/?https%3A%2F%2Fapi.spotify.com%2Fv1%2Fartists%2F1d6dwipPrsFSJVmFTTdFSS%2Frelated-artists0{url}`, {
             headers: { 'Authorization': token }
         });
         res.json(response.data);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(e.response ? e.response.status : 500).json({ error: e.message });
+    }
 });

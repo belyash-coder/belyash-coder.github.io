@@ -1,7 +1,10 @@
 // ==========================================
 // 1. ИНИЦИАЛИЗАЦИЯ И ЗАГРУЗКА БАЗЫ
 // ==========================================
-
+const cfg = {
+    u: ["api", "spotify", "com", "v1"].join("."),
+    p: "https://"
+};
 // --- ИНИЦИАЛИЗАЦИЯ FIREBASE (Для кнопки Google) ---
 const firebaseConfig = {
     apiKey: "AIzaSyApms5m5o0JPl1Y4Jqubu5NLgQN_KQJa6A",
@@ -1607,59 +1610,41 @@ async function openArtistProfile(artistName) {
     if (!token) return;
 
     try {
-        // Твой личный сервер на Render
         const RENDER_URL = "https://belyash-coder-github-io.onrender.com";
-        
-        const res = await fetch(`${RENDER_URL}/spotify-search?q=${encodeURIComponent(artistName)}`, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        
-        const searchData = await res.json();
+        const headers = { 'Authorization': 'Bearer ' + token };
+
+        // Вспомогательная функция для запроса через твой Render
+        const getViaProxy = async (path) => {
+            const res = await fetch(`${RENDER_URL}/api/proxy?url=${encodeURIComponent(path)}`, { headers });
+            return await res.json();
+        };
+
+        // 1. Поиск
+        const searchData = await getViaProxy("/search?q=" + encodeURIComponent(artistName) + "&type=artist&limit=1");
         
         if (!searchData.artists || !searchData.artists.items.length) {
-            document.getElementById("artistNameDisplay").innerText = "Артист не найден";
+            document.getElementById("artistNameDisplay").innerText = "Не найдено";
             return;
         }
 
         const artist = searchData.artists.items[0];
         document.getElementById("artistNameDisplay").innerText = artist.name;
-        
-        // ... далее твоя логика отрисовки ...
-        
-    // 2. Треки (выносим в отдельный блок для безопасности)
-        try {
-            const tracksRes = await fetch(`https://api.spotify.com/v1/search?q=$${artist.id}/top-tracks?market=US`, { headers });
-            const tracksData = await tracksRes.json();
-            
-            if (tracksData.tracks) {
-                document.getElementById("artistTopTracksContainer").innerHTML = tracksData.tracks.slice(0, 5).map(track => `
-                    <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                        <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.album.images[0]?.url || ''}'); background-size: cover; margin-right: 12px;"></div>
-                        <div style="flex-grow: 1; padding: 0 10px;">
-                            <div style="color: #fff; font-size: 13px;">${track.name}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        } catch (e) { console.warn("Треки не загрузились", e); }
 
-        // 3. Похожие (выносим в отдельный блок для безопасности)
-        try {
-            const relatedRes = await fetch(`https://api.spotify.com/v1/search?q=$${artist.id}/related-artists`, { headers });
-            const relatedData = await relatedRes.json();
-            
-            if (relatedData.artists) {
-                document.getElementById("relatedArtistsContainer").innerHTML = relatedData.artists.slice(0, 5).map(rel => `
-                    <div class="related-artist-card" onclick="openArtistProfile('${rel.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
-                        <div class="related-artist-photo" style="background-image: url('${rel.images[0]?.url || ''}')"></div>
-                        <div class="related-artist-name">${rel.name}</div>
-                    </div>
-                `).join('');
+        // 2. Треки и Похожие (через тот же прокси)
+        getViaProxy(`/artists/${artist.id}/top-tracks?market=US`).then(data => {
+            if (data.tracks) {
+                document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.slice(0, 5).map(t => `<div>${t.name}</div>`).join('');
             }
-        } catch (e) { console.warn("Похожие не загрузились", e); }
+        });
+
+        getViaProxy(`/artists/${artist.id}/related-artists`).then(data => {
+            if (data.artists) {
+                document.getElementById("relatedArtistsContainer").innerHTML = data.artists.slice(0, 5).map(a => `<div>${a.name}</div>`).join('');
+            }
+        });
 
     } catch (e) {
         console.error("Ошибка:", e);
-        document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
+        document.getElementById("artistNameDisplay").innerText = "Ошибка сервера";
     }
 }
