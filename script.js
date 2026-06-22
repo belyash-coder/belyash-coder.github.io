@@ -871,15 +871,9 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
     });
 }
 
-    // Слушаем ввод текста
+    // Управление отображением крестика очистки
     searchInput.addEventListener("input", (e) => {
-        const value = e.target.value;
-        
-        // Показываем/скрываем крестик
-        clearSearchBtn.style.display = value.length > 0 ? "block" : "none";
-        
-        // Запускаем поиск
-        renderSearchResults(value);
+        clearSearchBtn.style.display = e.target.value.length > 0 ? "block" : "none";
     });
 
     // Очищаем поле по клику на крестик
@@ -1550,16 +1544,21 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
 const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
 const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
 
+// Жестко фиксируем официальные адреса API Spotify
+const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/api/token';
+const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
+
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 1. Получение токена (Официальный URL)
+// 1. Получение токена
 async function getSpotifyAccessToken() {
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
@@ -1568,7 +1567,7 @@ async function getSpotifyAccessToken() {
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
     
     try {
-        const response = await fetch('https://accounts.spotify.com/api/token', {
+        const response = await fetch(SPOTIFY_AUTH_URL, {
             method: 'POST',
             headers: {
                 'Authorization': `Basic ${authString}`,
@@ -1590,7 +1589,7 @@ async function getSpotifyAccessToken() {
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
-// Обработчик закрытия окна (Восстановлен!)
+// Обработчик закрытия окна
 if (closeArtistBtn && artistModal) {
     closeArtistBtn.addEventListener("click", () => {
         artistModal.classList.remove("active");
@@ -1604,7 +1603,7 @@ if (closeArtistBtn && artistModal) {
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
 
-    // Показываем прелоадер (мятный цвет под нашу UI систему)
+    // Показываем прелоадер
     document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
     document.getElementById("artistFollowers").innerHTML = "";
     document.getElementById("artistGenresContainer").innerHTML = "";
@@ -1623,8 +1622,8 @@ async function openArtistProfile(artistName) {
     }
 
     try {
-        // ЗАПРОС 1: Ищем артиста (Официальный URL API и правильный знак $)
-        const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
+        // ЗАПРОС 1: Ищем артиста
+        const searchRes = await fetch(`${SPOTIFY_API_BASE}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
@@ -1639,7 +1638,7 @@ async function openArtistProfile(artistName) {
         const artistId = artist.id;
         const imageUrl = artist.images.length > 0 ? artist.images[0].url : '';
 
-        // Защита от отсутствия поля followers
+        // ЗАЩИТА: Проверка на отсутствие подписчиков
         const followersCount = (artist.followers && artist.followers.total) ? artist.followers.total : 0;
 
         // Отрисовка шапки
@@ -1650,12 +1649,13 @@ async function openArtistProfile(artistName) {
             document.getElementById("artistAvatar").style.backgroundImage = `url('${imageUrl}')`;
         }
 
-        // Отрисовка жанров
-        const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
+        // ЗАЩИТА: Если у артиста нет жанров, подставляем пустой массив, чтобы .map() не сломал скрипт
+        const safeGenres = artist.genres || [];
+        const genresHtml = safeGenres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // ЗАПРОС 2: Топ-10 треков (Официальный URL API)
-        const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
+        // ЗАПРОС 2: Топ-10 треков
+        const tracksRes = await fetch(`${SPOTIFY_API_BASE}/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const tracksData = await tracksRes.json();
@@ -1681,8 +1681,8 @@ async function openArtistProfile(artistName) {
         }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // ЗАПРОС 3: Похожие артисты (Официальный URL API)
-        const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
+        // ЗАПРОС 3: Похожие артисты
+        const relatedRes = await fetch(`${SPOTIFY_API_BASE}/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const relatedData = await relatedRes.json();
