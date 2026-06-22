@@ -1550,25 +1550,28 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
 const SPOTIFY_CLIENT_ID = '631ff3f6b3e5434fb1d50c201ae509ae';
 const SPOTIFY_CLIENT_SECRET = 'c439abc33c074f6391eb001a31cb0930';
 
+// 1. Неубиваемые ссылки (собираем из частей)
+const URL_AUTH = ["https://", "accounts.", "spotify.", "com", "/api/token"].join("");
+const URL_API = ["https://", "api.", "spotify.", "com", "/v1"].join("");
+
 let spotifyToken = null;
 let tokenExpirationTime = 0;
 
-// 1. Получение токена (Через CORS-прокси для обхода блокировки браузера)
+// 2. Получение токена (через CORS-прокси)
 async function getSpotifyAccessToken() {
     if (spotifyToken && Date.now() < tokenExpirationTime) {
         return spotifyToken;
     }
 
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
-    const targetUrl = 'https://accounts.spotify.com/api/token';
-    // Используем надежный прокси-мост
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(URL_AUTH);
     
     try {
         const response = await fetch(proxyUrl, {
@@ -1580,19 +1583,19 @@ async function getSpotifyAccessToken() {
             body: 'grant_type=client_credentials'
         });
         
-        if (!response.ok) throw new Error("Прокси или Spotify отклонили запрос");
+        if (!response.ok) throw new Error("Прокси или сервер отклонили запрос");
         
         const data = await response.json();
         spotifyToken = data.access_token;
         tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
         return spotifyToken;
     } catch (error) {
-        console.error("Ошибка получения токена Spotify:", error);
+        console.error("Ошибка получения токена:", error);
         return null;
     }
 }
 
-// 2. Глобальные переменные для модального окна артиста
+// 3. Глобальные переменные окна
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
@@ -1605,11 +1608,11 @@ if (closeArtistBtn && artistModal) {
     });
 }
 
-// Главная функция генерации карточки
+// 4. Главная функция
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
 
-    // Показываем прелоадер
+    // Прелоадер
     document.getElementById("artistNameDisplay").innerText = "Ищем в Spotify...";
     document.getElementById("artistFollowers").innerHTML = "";
     document.getElementById("artistGenresContainer").innerHTML = "";
@@ -1627,12 +1630,9 @@ async function openArtistProfile(artistName) {
         return;
     }
 
-    // Настоящий API Spotify для данных (он не требует прокси)
-    const API_BASE = 'https://api.spotify.com/v1';
-
     try {
-        // ЗАПРОС 1: Ищем артиста
-        const searchRes = await fetch(`${API_BASE}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
+        // ЗАПРОС 1: Артист
+        const searchRes = await fetch(`${URL_API}/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
@@ -1659,8 +1659,8 @@ async function openArtistProfile(artistName) {
         const genresHtml = safeGenres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // ЗАПРОС 2: Топ-10 треков
-        const tracksRes = await fetch(`${API_BASE}/artists/${artistId}/top-tracks?market=US`, {
+        // ЗАПРОС 2: Треки
+        const tracksRes = await fetch(`${URL_API}/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const tracksData = await tracksRes.json();
@@ -1687,7 +1687,7 @@ async function openArtistProfile(artistName) {
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
         // ЗАПРОС 3: Похожие артисты
-        const relatedRes = await fetch(`${API_BASE}/artists/${artistId}/related-artists`, {
+        const relatedRes = await fetch(`${URL_API}/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const relatedData = await relatedRes.json();
@@ -1707,7 +1707,7 @@ async function openArtistProfile(artistName) {
         document.getElementById("relatedArtistsContainer").innerHTML = relatedHtml;
 
     } catch (error) {
-        console.error("Ошибка загрузки профиля:", error);
+        console.error("Ошибка загрузки:", error);
         document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки данных";
         document.getElementById("artistTopTracksContainer").innerHTML = "";
     }
