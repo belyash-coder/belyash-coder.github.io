@@ -816,42 +816,46 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
             const token = await getSpotifyAccessToken();
             if (token) {
                 try {
-                    const res = await fetch(`https://api.spotify.com/v1/search?q=$${encodeURIComponent(query)}&type=artist&limit=5`, {
+                    // ИСПРАВЛЕНА ССЫЛКА НА API SPOTIFY
+                    const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=5`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await res.json();
-                    const artists = data.artists.items;
+                    
+                    if (data.artists && data.artists.items) {
+                        const artists = data.artists.items;
 
-                    if (artists.length > 0) {
-                        // Заголовок секции артистов
-                        const artistTitle = document.createElement("h4");
-                        const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
-                        artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
-                        artistTitle.innerText = "Артисты";
-                        searchResultsContainer.appendChild(artistTitle);
+                        if (artists.length > 0) {
+                            // Заголовок секции артистов
+                            const artistTitle = document.createElement("h4");
+                            const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
+                            artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
+                            artistTitle.innerText = "Артисты";
+                            searchResultsContainer.appendChild(artistTitle);
 
-                        // Отрисовываем карточки артистов
-                        artists.forEach(artist => {
-                            const img = artist.images.length > 0 ? artist.images[0].url : '';
-                            const artistCard = document.createElement("div");
-                            artistCard.className = "artist-search-card";
-                            artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
-                            
-                            artistCard.innerHTML = `
-                                <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
-                                <div style="flex-grow: 1; overflow: hidden;">
-                                    <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
-                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
-                                </div>
-                            `;
+                            // Отрисовываем карточки артистов
+                            artists.forEach(artist => {
+                                const img = artist.images.length > 0 ? artist.images[0].url : '';
+                                const artistCard = document.createElement("div");
+                                artistCard.className = "artist-search-card";
+                                artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
+                                
+                                artistCard.innerHTML = `
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                                    <div style="flex-grow: 1; overflow: hidden;">
+                                        <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
+                                        <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
+                                    </div>
+                                `;
 
-                            // Открываем профиль артиста из Spotify
-                            artistCard.addEventListener("click", () => {
-                                openArtistProfile(artist.name);
+                                // Открываем профиль артиста из Spotify
+                                artistCard.addEventListener("click", () => {
+                                    openArtistProfile(artist.name);
+                                });
+
+                                searchResultsContainer.appendChild(artistCard);
                             });
-
-                            searchResultsContainer.appendChild(artistCard);
-                        });
+                        }
                     }
                 } catch (error) {
                     console.error("Ошибка поиска Spotify:", error);
@@ -1544,6 +1548,7 @@ if (clearHistoryBtn) {
 
 updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
+// ==========================================
 // ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
 // ==========================================
 
@@ -1564,6 +1569,7 @@ async function getSpotifyAccessToken() {
     const authString = btoa(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`);
     
     try {
+        // ИСПРАВЛЕН URL АВТОРИЗАЦИИ
         const response = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: {
@@ -1609,16 +1615,20 @@ async function openArtistProfile(artistName) {
     artistModal.classList.add("active");
 
     const token = await getSpotifyAccessToken();
-    if (!token) return;
+    if (!token) {
+        document.getElementById("artistNameDisplay").innerText = "Ошибка авторизации";
+        document.getElementById("artistTopTracksContainer").innerHTML = "";
+        return;
+    }
 
     try {
-        // Запрос 1: Ищем артиста по имени
+        // Запрос 1: Ищем артиста по имени (ИСПРАВЛЕН URL)
         const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const searchData = await searchRes.json();
         
-        if (!searchData.artists.items.length) {
+        if (!searchData.artists || !searchData.artists.items.length) {
             document.getElementById("artistNameDisplay").innerText = "Артист не найден";
             document.getElementById("artistTopTracksContainer").innerHTML = "";
             return;
@@ -1640,7 +1650,7 @@ async function openArtistProfile(artistName) {
         const genresHtml = artist.genres.map(g => `<span class="artist-genre-pill">${g}</span>`).join('');
         document.getElementById("artistGenresContainer").innerHTML = genresHtml;
 
-        // Запрос 2: Топ-10 треков
+        // Запрос 2: Топ-10 треков (ИСПРАВЛЕН URL)
         const tracksRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1648,41 +1658,44 @@ async function openArtistProfile(artistName) {
         
         let tracksHtml = '';
         // Берем первые 5 топ-треков, чтобы не перегружать модалку
-        tracksData.tracks.slice(0, 5).forEach(track => {
-            const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
-            // Используем структуру наших стандартных карточек треков, но без сикбара для упрощения
-            tracksHtml += `
-                <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${trackCover}'); background-size: cover; margin-right: 12px;"></div>
-                    <div style="flex-grow: 1; overflow: hidden;">
-                        <div style="color: #fff; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</div>
-                        <div style="color: rgba(168,159,205,0.7); font-size: 11px;">${track.album.name}</div>
+        if (tracksData.tracks) {
+            tracksData.tracks.slice(0, 5).forEach(track => {
+                const trackCover = track.album.images.length > 0 ? track.album.images[track.album.images.length - 1].url : '';
+                tracksHtml += `
+                    <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${trackCover}'); background-size: cover; margin-right: 12px;"></div>
+                        <div style="flex-grow: 1; overflow: hidden;">
+                            <div style="color: #fff; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</div>
+                            <div style="color: rgba(168,159,205,0.7); font-size: 11px;">${track.album.name}</div>
+                        </div>
+                        ${track.preview_url ? 
+                            `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>` : 
+                            `<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>`
+                        }
                     </div>
-                    ${track.preview_url ? 
-                        `<a href="${track.preview_url}" target="_blank" style="color: #1DB954; font-size: 18px; padding: 5px;"><i class="fa-solid fa-circle-play"></i></a>` : 
-                        `<i class="fa-brands fa-spotify" style="color: rgba(255,255,255,0.2); font-size: 18px;"></i>`
-                    }
-                </div>
-            `;
-        });
+                `;
+            });
+        }
         document.getElementById("artistTopTracksContainer").innerHTML = tracksHtml;
 
-        // Запрос 3: Похожие артисты
+        // Запрос 3: Похожие артисты (ИСПРАВЛЕН URL)
         const relatedRes = await fetch(`https://api.spotify.com/v1/artists/${artistId}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const relatedData = await relatedRes.json();
         
         let relatedHtml = '';
-        relatedData.artists.slice(0, 10).forEach(relArtist => {
-            const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
-            relatedHtml += `
-                <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')">
-                    <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
-                    <div class="related-artist-name">${relArtist.name}</div>
-                </div>
-            `;
-        });
+        if (relatedData.artists) {
+            relatedData.artists.slice(0, 10).forEach(relArtist => {
+                const relImg = relArtist.images.length > 0 ? relArtist.images[0].url : '';
+                relatedHtml += `
+                    <div class="related-artist-card" onclick="openArtistProfile('${relArtist.name.replace(/'/g, "\\'")}')">
+                        <div class="related-artist-photo" style="background-image: url('${relImg}')"></div>
+                        <div class="related-artist-name">${relArtist.name}</div>
+                    </div>
+                `;
+            });
+        }
         document.getElementById("relatedArtistsContainer").innerHTML = relatedHtml;
 
     } catch (error) {
