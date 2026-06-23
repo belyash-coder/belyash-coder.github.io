@@ -13,7 +13,6 @@ app.get('/search-artist', async (req, res) => {
     if (!name) return res.status(400).json({ error: "Введите имя артиста" });
 
     try {
-        // Автоматическая очистка ключей от случайных пробелов
         const clientId = (process.env.CLIENT_ID || '').trim();
         const clientSecret = (process.env.CLIENT_SECRET || '').trim();
 
@@ -21,7 +20,6 @@ app.get('/search-artist', async (req, res) => {
             return res.status(500).json({ error: "Ключи доступа отсутствуют" });
         }
 
-        // 1. Получаем токен
         const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         const tokenResponse = await axios.post(tokenUrl,
             'grant_type=client_credentials', {
@@ -29,7 +27,6 @@ app.get('/search-artist', async (req, res) => {
         });
         const token = tokenResponse.data.access_token;
 
-        // 2. Ищем артиста
         const searchRes = await axios.get(`${apiUrl}/search?q=${encodeURIComponent(name)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -40,17 +37,14 @@ app.get('/search-artist', async (req, res) => {
 
         const artist = searchRes.data.artists.items[0];
 
-        // 3. Получаем топовые треки
         const tracksRes = await axios.get(`${apiUrl}/artists/${artist.id}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 4. Получаем похожих артистов
         const relatedRes = await axios.get(`${apiUrl}/artists/${artist.id}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 5. Отправляем готовые данные
         res.json({
             found: true,
             artist: artist,
@@ -59,7 +53,6 @@ app.get('/search-artist', async (req, res) => {
         });
 
     } catch (error) {
-        // Теперь ошибка не будет слепой
         console.error("Системный сбой:", error.response ? error.response.data : error.message);
         res.status(500).json({ 
             error: "Ошибка связи", 
@@ -68,5 +61,5 @@ app.get('/search-artist', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
+// Экспорт приложения для бессерверной среды Vercel
+module.exports = app;
