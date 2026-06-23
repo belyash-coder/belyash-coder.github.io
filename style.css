@@ -2662,3 +2662,19 @@ body.theme-light .seek-bar-container {
     width: 0%;
     transition: width 0.1s linear;
 }
+/* --- АППАРАТНОЕ УСКОРЕНИЕ ДЛЯ МОБИЛЬНЫХ (ФИКС ФРИЗОВ) --- */
+.modal, .artist-modal, #artistTopTracksContainer, #relatedArtistsContainer {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Переносим отрисовку карточек и теней на графический чип */
+.track-card, .artist-search-card, .related-artist-card, .artist-avatar, .related-artist-photo {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+}
+
+/* Оптимизация фона шапки */
+.artist-header-bg {
+    will-change: background-image;
+}

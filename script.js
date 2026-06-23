@@ -45,7 +45,9 @@ function getDailyGenreName(validGenresArray) {
 }
 
 // --- ЗАГРУЗКА БАЗЫ И ИНИЦИАЛИЗАЦИЯ ---
-fetch('genres_data.json')
+// Добавляем текущую дату в запрос, чтобы сбрасывать кэш браузеров ровно раз в сутки
+const cacheBuster = new Date().toISOString().slice(0, 10);
+fetch(`genres_data.json?v=${cacheBuster}`)
     .then(response => response.json())
     .then(data => {
         globalDatabase = data;
@@ -1627,7 +1629,12 @@ if (artistBackBtn) {
 async function openArtistProfile(artistName, isBack = false) {
     if (!artistModal) return;
 
-    // Управление историей для кнопки "Назад"
+    // ОБМАНЫВАЕМ БРАУЗЕР: Делаем вид, что открылась новая страница
+    if (!isBack) {
+        history.pushState({ modal: 'artist', name: artistName }, '');
+    }
+
+    // Управление историей для внутренней кнопки "Назад"
     if (!isBack && currentArtistInModal && currentArtistInModal !== artistName) {
         artistHistoryStack.push(currentArtistInModal);
     }
@@ -1809,3 +1816,27 @@ async function openArtistProfile(artistName, isBack = false) {
         if (followersDisplay) followersDisplay.innerHTML = "";
     }
 }
+// --- ОБРАБОТЧИК СИСТЕМНОЙ КНОПКИ "НАЗАД" НА СМАРТФОНАХ ---
+window.addEventListener('popstate', (event) => {
+    // Проверяем, открыто ли сейчас окно артиста
+    if (typeof artistModal !== 'undefined' && artistModal && artistModal.classList.contains('active')) {
+        
+        // Если внутри профиля мы переходили по "Похожим артистам" - возвращаемся на шаг назад
+        if (typeof artistHistoryStack !== 'undefined' && artistHistoryStack.length > 0) {
+            const prevArtist = artistHistoryStack.pop();
+            openArtistProfile(prevArtist, true); // true означает, что это возврат
+        } else {
+            // Если история пуста - просто закрываем окно и глушим музыку
+            artistModal.classList.remove('active');
+            if (typeof currentArtistInModal !== 'undefined') currentArtistInModal = null;
+            
+            // Выключаем плеер артиста
+            if (typeof currentAudio !== 'undefined' && currentAudio && currentAudio.trackId && currentAudio.trackId.startsWith('artist-track')) {
+                currentAudio.pause();
+                if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
+                    currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                }
+            }
+        }
+    }
+});
