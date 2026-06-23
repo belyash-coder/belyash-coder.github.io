@@ -1538,22 +1538,62 @@ if (closeArtistBtn && artistModal) {
     });
 }
 
+// --- ЛОГИКА ИСТОРИИ ПРОФИЛЕЙ АРТИСТОВ ---
+let artistHistoryStack = [];
+let currentArtistInModal = null;
 
+if (closeArtistBtn && artistModal) {
+    // Перезаписываем логику закрытия крестиком (добавляем очистку истории)
+    const oldCloseClone = closeArtistBtn.cloneNode(true);
+    closeArtistBtn.parentNode.replaceChild(oldCloseClone, closeArtistBtn);
+    oldCloseClone.addEventListener("click", () => {
+        artistModal.classList.remove("active");
+        artistHistoryStack = [];
+        currentArtistInModal = null;
+        if (typeof currentAudio !== 'undefined' && currentAudio && currentAudio.trackId && currentAudio.trackId.startsWith('artist-track')) {
+            currentAudio.pause();
+            if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
+                currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            }
+        }
+    });
+}
+
+const artistBackBtn = document.getElementById("artistBackBtn");
+if (artistBackBtn) {
+    artistBackBtn.addEventListener("click", () => {
+        if (artistHistoryStack.length > 0) {
+            const prevArtist = artistHistoryStack.pop();
+            openArtistProfile(prevArtist, true); // true = возвращаемся назад
+        }
+    });
+}
 // Главная функция генерации карточки (Last.fm + iTunes + Deezer)
-async function openArtistProfile(artistName) {
+// Главная функция генерации карточки (Last.fm + iTunes + Deezer)
+async function openArtistProfile(artistName, isBack = false) {
     if (!artistModal) return;
+
+    // Управление историей для кнопки "Назад"
+    if (!isBack && currentArtistInModal && currentArtistInModal !== artistName) {
+        artistHistoryStack.push(currentArtistInModal);
+    }
+    if (!isBack && !currentArtistInModal) {
+        artistHistoryStack = []; // Сброс, если открыли с нуля
+    }
+    currentArtistInModal = artistName;
+
+    const backBtn = document.getElementById("artistBackBtn");
+    if (backBtn) {
+        backBtn.style.display = artistHistoryStack.length > 0 ? "block" : "none";
+    }
     
     // Сбрасываем старые данные перед новой загрузкой
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     const followersDisplay = document.getElementById("artistFollowers");
     if (followersDisplay) followersDisplay.innerHTML = '<i class="fa-solid fa-users"></i> Загрузка...';
     
-    const avatarEl = document.getElementById("artistAvatar");
-    if (avatarEl) {
-        avatarEl.style.backgroundImage = "none";
-        avatarEl.style.borderColor = "transparent";
-        avatarEl.style.boxShadow = "none"; // Полностью скрываем свечение
-    }
+    const headerEl = document.getElementById("artistHeader");
+    if (headerEl) headerEl.style.backgroundImage = "none";
     
     artistModal.classList.add("active");
 
@@ -1573,10 +1613,9 @@ async function openArtistProfile(artistName) {
         document.getElementById("artistNameDisplay").innerText = data.name;
 
         // Вставка аватара артиста
-        if (data.avatar && avatarEl) {
-            avatarEl.style.backgroundImage = `url('${data.avatar}')`;
-            avatarEl.style.borderColor = "#8FDDCB";
-            avatarEl.style.boxShadow = "0 0 20px rgba(143, 221, 203, 0.4)"; // Возвращаем свечение
+        // Вставка полноэкранного фото на фон шапки
+        if (data.avatar && headerEl) {
+            headerEl.style.backgroundImage = `url('${data.avatar}')`;
         }
 
         // Вставка красиво отформатированного счетчика фанатов
@@ -1595,7 +1634,9 @@ async function openArtistProfile(artistName) {
 
         if (data.tracks && data.tracks.length > 0) {
             data.tracks.forEach((track, index) => {
-                const trackId = `artist-track-${index}`; 
+                // Создаем 100% уникальный ID для каждого трека каждого артиста
+                const safeArtistId = data.name.replace(/[^a-zA-Z0-9]/g, '');
+                const trackId = `artist-track-${safeArtistId}-${index}`;
                 
                 const card = document.createElement("div");
                 card.className = "track-card artist-track-card";

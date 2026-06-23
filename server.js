@@ -15,7 +15,6 @@ app.get('/search-artist', async (req, res) => {
     }
 
     try {
-        // 1. Получаем био и теги артиста из Last.fm
         const infoUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&format=json&autocorrect=1`;
         const infoResponse = await axios.get(infoUrl);
         
@@ -26,7 +25,6 @@ app.get('/search-artist', async (req, res) => {
         const artistData = infoResponse.data.artist;
         const correctedName = artistData.name;
 
-        // 2. Получаем похожих артистов
         const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(correctedName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
         const similarResponse = await axios.get(similarUrl);
         
@@ -35,7 +33,6 @@ app.get('/search-artist', async (req, res) => {
             similarArtists = similarResponse.data.similarartists.artist.map(a => a.name);
         }
 
-        // 3. Запрос к Deezer API (Используем поисковый эндпоинт, чтобы находить фото по имени)
         let avatarUrl = '';
         let fansCount = 0;
         try {
@@ -51,12 +48,14 @@ app.get('/search-artist', async (req, res) => {
             console.error('Ошибка Deezer API:', deezerError.message);
         }
 
-        // 4. Ищем топ-треки в iTunes (Добавлен фильтр attribute=artistTerm для точного совпадения имени)
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=20`;
+        // Запрашиваем 30 треков, чтобы после строгой фильтрации гарантированно осталось 10 лучших
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=30`;
         const itunesResponse = await axios.get(itunesUrl);
         
         const topTracks = itunesResponse.data.results
             .filter(track => track.previewUrl)
+            // Строгий фильтр: Имя исполнителя трека должно включать искомое имя
+            .filter(track => track.artistName.toLowerCase().includes(correctedName.toLowerCase()))
             .slice(0, 10) 
             .map(track => ({
                 name: track.trackName,
