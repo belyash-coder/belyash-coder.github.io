@@ -21,6 +21,25 @@ let globalDatabase = {};
 let genres = []; // Массив только названий (для рулетки)
 let appGenres = []; // Массив объектов (для поиска и Жанра дня)
 
+// --- ЛОГИКА ЖАНРА ДНЯ (СИНХРОНИЗАЦИЯ ДЛЯ ВСЕХ) ---
+function getDailyGenreName(validGenresArray) {
+    const totalGenres = validGenresArray.length;
+    if (totalGenres === 0) return null;
+
+    const now = new Date();
+    // Сдвигаем время на +3 часа, чтобы полночь наступала по московскому времени
+    const msSinceEpoch = now.getTime() + (3 * 60 * 60 * 1000); 
+    const daysSinceEpoch = Math.floor(msSinceEpoch / (1000 * 60 * 60 * 24));
+    
+    // Математический трюк: sin от номера дня всегда одинаков
+    const x = Math.sin(daysSinceEpoch) * 10000;
+    const seededRandom = x - Math.floor(x);
+    
+    const dailyIndex = Math.floor(seededRandom * totalGenres);
+    return validGenresArray[dailyIndex];
+}
+
+// --- ЗАГРУЗКА БАЗЫ И ИНИЦИАЛИЗАЦИЯ ---
 fetch('genres_data.json')
     .then(response => response.json())
     .then(data => {
@@ -35,22 +54,18 @@ fetch('genres_data.json')
             const genreData = data[key];
             
             // --- БЕЗЖАЛОСТНЫЙ ФИЛЬТР ---
-            // Проверяем, пустое ли описание (с учетом заглушек из твоего парсера)
             const isDescEmpty = !genreData.description || 
                                 genreData.description.includes("Описание пока не собрано") || 
                                 genreData.description.includes("Описание временно недоступно");
             
-            // Проверяем, пустой ли массив треков
             const hasNoTracks = !genreData.tracks || genreData.tracks.length === 0;
             
-            // Если нет ни полезного описания, ни музыки — выкидываем из выдачи
             if (isDescEmpty && hasNoTracks) {
                 skippedCount++;
                 continue; 
             }
             // ---------------------------
 
-            // Если жанр прошел проверку, добавляем его в систему
             let niceName = key.charAt(0).toUpperCase() + key.slice(1);
             
             genres.push(niceName);
@@ -62,9 +77,12 @@ fetch('genres_data.json')
         
         console.log(`✅ База загружена! Рабочих жанров: ${genres.length}. Отфильтровано пустых: ${skippedCount}`);
         
-        // Запускаем Жанр дня
-        if (typeof setDailyGenre === 'function') {
-            setDailyGenre();
+        // Вычисляем Жанр дня строго из массива рабочих жанров
+        const dailyGenreName = getDailyGenreName(genres);
+        
+        // Передаем вычисленный жанр в функцию отрисовки
+        if (typeof setDailyGenre === 'function' && dailyGenreName) {
+            setDailyGenre(dailyGenreName);
         }
     })
     .catch(error => console.error("❌ Ошибка загрузки базы жанров:", error));
@@ -220,6 +238,32 @@ if (button && wheel) {
 
         }, 4550);
     });
+}
+
+// --- ЛОГИКА ЖАНРА ДНЯ (СИНХРОНИЗАЦИЯ ДЛЯ ВСЕХ) ---
+function getDailyGenreName(genresData) {
+    const genreNames = Object.keys(genresData);
+    const totalGenres = genreNames.length;
+    
+    if (totalGenres === 0) return null;
+
+    const now = new Date();
+    
+    // Сдвигаем время на +3 часа, чтобы полночь (смена жанра) наступала по московскому времени (UTC+3)
+    const msSinceEpoch = now.getTime() + (3 * 60 * 60 * 1000);
+    
+    // Вычисляем уникальный номер текущего дня
+    const daysSinceEpoch = Math.floor(msSinceEpoch / (1000 * 60 * 60 * 24));
+    
+    // Математический трюк: используем номер дня как "сид" для псевдослучайного числа.
+    // Функция Math.sin для одного и того же дня будет выдавать строго одинаковый результат у всех.
+    const x = Math.sin(daysSinceEpoch) * 10000;
+    const seededRandom = x - Math.floor(x);
+    
+    // Превращаем полученное число в индекс массива жанров
+    const dailyIndex = Math.floor(seededRandom * totalGenres);
+    
+    return genreNames[dailyIndex];
 }
 
 // --- НОВАЯ ЛОГИКА ОТКРЫТИЯ ОКНА (ДАННЫЕ ИЗ JSON + НАТИВНОЕ АУДИО И ОБЛОЖКИ) ---
@@ -1199,7 +1243,7 @@ updateFavorites();
 const dailyGenreElement = document.getElementById("dailyGenre");
 
 if (dailyGenreElement && typeof appGenres !== 'undefined') {
-    function setDailyGenre() {
+    function setDailyGenre(genreName) {
         // Получаем текущую дату в формате YYYY-MM-DD (например, 2026-06-19)
         const today = new Date().toISOString().split('T')[0];
         
@@ -1728,16 +1772,23 @@ async function openArtistProfile(artistName, isBack = false) {
             tracksContainer.innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Треки не найдены</div>';
         }
 
-        // Отрисовка похожих артистов (из Last.fm)
+        // Отрисовка похожих артистов с фотографиями
         if (data.similar && data.similar.length > 0) {
-            document.getElementById("relatedArtistsContainer").innerHTML = data.similar.map(name => `
-                <div class="related-artist-card" onclick="openArtistProfile('${name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
-                    <div class="related-artist-photo" style="background-color: #140f1c; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(143, 221, 203, 0.3);">
-                        <i class="fa-solid fa-music" style="color: rgba(143, 221, 203, 0.5);"></i>
-                    </div>
-                    <div class="related-artist-name">${name}</div>
+            document.getElementById("relatedArtistsContainer").innerHTML = data.similar.map(artistObj => {
+                const safeName = artistObj.name.replace(/'/g, "\\'");
+                
+                // Если сервер нашел фото - вставляем его, если нет - оставляем заглушку с нотой
+                const photoHtml = artistObj.picture 
+                    ? `<div class="related-artist-photo" style="background-image: url('${artistObj.picture}'); background-size: cover; background-position: center; border: 1px solid rgba(143, 221, 203, 0.3);"></div>`
+                    : `<div class="related-artist-photo" style="background-color: #140f1c; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(143, 221, 203, 0.3);"><i class="fa-solid fa-music" style="color: rgba(143, 221, 203, 0.5);"></i></div>`;
+
+                return `
+                <div class="related-artist-card" onclick="openArtistProfile('${safeName}')" style="cursor: pointer;">
+                    ${photoHtml}
+                    <div class="related-artist-name">${artistObj.name}</div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         } else {
             document.getElementById("relatedArtistsContainer").innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Нет данных</div>';
         }

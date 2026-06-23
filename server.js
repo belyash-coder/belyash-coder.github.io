@@ -25,12 +25,31 @@ app.get('/search-artist', async (req, res) => {
         const artistData = infoResponse.data.artist;
         const correctedName = artistData.name;
 
+        // 2. Получаем похожих артистов и параллельно вытягиваем их фото из Deezer
         const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(correctedName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
         const similarResponse = await axios.get(similarUrl);
         
         let similarArtists = [];
         if (similarResponse.data.similarartists && similarResponse.data.similarartists.artist) {
-            similarArtists = similarResponse.data.similarartists.artist.map(a => a.name);
+            const rawSimilar = similarResponse.data.similarartists.artist.slice(0, 8);
+            
+            // Promise.all делает запросы одновременно, сохраняя высокую скорость сервера
+            similarArtists = await Promise.all(rawSimilar.map(async (simArtist) => {
+                let simAvatar = '';
+                try {
+                    const dzUrl = `https://api.deezer.com/search/artist?q=${encodeURIComponent(simArtist.name)}`;
+                    const dzRes = await axios.get(dzUrl);
+                    if (dzRes.data && dzRes.data.data && dzRes.data.data.length > 0) {
+                        simAvatar = dzRes.data.data[0].picture_medium || ''; // medium (250x250) идеально для маленьких карточек
+                    }
+                } catch (err) {
+                    // Если Deezer не нашел фото конкретного артиста, просто пропускаем
+                }
+                return {
+                    name: simArtist.name,
+                    picture: simAvatar
+                };
+            }));
         }
 
         let avatarUrl = '';
@@ -48,13 +67,11 @@ app.get('/search-artist', async (req, res) => {
             console.error('Ошибка Deezer API:', deezerError.message);
         }
 
-        // Запрашиваем 30 треков, чтобы после строгой фильтрации гарантированно осталось 10 лучших
         const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=30`;
         const itunesResponse = await axios.get(itunesUrl);
         
         const topTracks = itunesResponse.data.results
             .filter(track => track.previewUrl)
-            // Строгий фильтр: Имя исполнителя трека должно включать искомое имя
             .filter(track => track.artistName.toLowerCase().includes(correctedName.toLowerCase()))
             .slice(0, 10) 
             .map(track => ({
