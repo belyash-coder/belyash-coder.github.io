@@ -1606,37 +1606,43 @@ async function openArtistProfile(artistName) {
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     artistModal.classList.add("active");
 
-    const token = await getSpotifyAccessToken();
-    if (!token) return;
-
-    // Инициализация библиотеки
-    const spotifyApi = new SpotifyWebApi();
-    spotifyApi.setAccessToken(token);
-
     try {
-        // Поиск артиста
-        const searchRes = await spotifyApi.searchArtists(artistName, { limit: 1 });
-        if (!searchRes.artists.items.length) throw new Error("Артист не найден");
+        // Обращаемся ТОЛЬКО к твоему настроенному серверу
+        const response = await fetch(`https://belyash-coder-github-io.onrender.com/search-artist?name=${encodeURIComponent(artistName)}`);
+        const data = await response.json();
 
-        const artist = searchRes.artists.items[0];
-        document.getElementById("artistNameDisplay").innerText = artist.name;
+        if (!data.found) {
+            document.getElementById("artistNameDisplay").innerText = "Не найдено";
+            return;
+        }
 
-        // Топ треки
-        const topTracks = await spotifyApi.getArtistTopTracks(artist.id, 'US');
-        document.getElementById("artistTopTracksContainer").innerHTML = topTracks.tracks.slice(0, 5).map(t => `
-            <div class="track-card"><span>${t.name}</span></div>
-        `).join('');
+        // Отрисовка имени артиста
+        document.getElementById("artistNameDisplay").innerText = data.artist.name;
 
-        // Похожие
-        const related = await spotifyApi.getArtistRelatedArtists(artist.id);
-        document.getElementById("relatedArtistsContainer").innerHTML = related.artists.slice(0, 5).map(a => `
-            <div class="related-artist-card" onclick="openArtistProfile('${a.name.replace(/'/g, "\\'")}')">
-                <span>${a.name}</span>
-            </div>
-        `).join('');
+        // Отрисовка треков
+        if (data.tracks) {
+            document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.map(track => `
+                <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.album.images[0]?.url || ''}'); background-size: cover; margin-right: 12px;"></div>
+                    <div style="flex-grow: 1; padding: 0 10px;">
+                        <div style="color: #fff; font-size: 13px;">${track.name}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-    } catch (e) {
-        console.error("Ошибка библиотеки:", e);
-        document.getElementById("artistNameDisplay").innerText = "Ошибка загрузки";
+        // Отрисовка похожих артистов
+        if (data.related) {
+            document.getElementById("relatedArtistsContainer").innerHTML = data.related.map(rel => `
+                <div class="related-artist-card" onclick="openArtistProfile('${rel.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                    <div class="related-artist-photo" style="background-image: url('${rel.images[0]?.url || ''}')"></div>
+                    <div class="related-artist-name">${rel.name}</div>
+                </div>
+            `).join('');
+        }
+
+    } catch (error) {
+        console.error("Системная ошибка:", error);
+        document.getElementById("artistNameDisplay").innerText = "Ошибка соединения с сервером";
     }
 }
