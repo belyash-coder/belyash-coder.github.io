@@ -803,45 +803,41 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                 });
             }
 
-// --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY (ЧЕРЕЗ VERCEL) ---
+// --- 2. ИЩЕМ АРТИСТОВ В БАЗЕ (ЧЕРЕЗ VERCEL) ---
             try {
-                // Теперь поиск тоже идет через наш безотказный мотор Vercel
                 const res = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 
-                if (data.found && data.artist) {
-                    const artists = [data.artist]; // Берем самого точного артиста
+                // Если сервер вернул имя артиста без ошибок
+                if (!data.error && data.name) {
+                    const artistTitle = document.createElement("h4");
+                    const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
+                    artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
+                    artistTitle.innerText = "Артисты";
+                    searchResultsContainer.appendChild(artistTitle);
 
-                    if (artists.length > 0) {
-                        // Заголовок секции артистов
-                        const artistTitle = document.createElement("h4");
-                        const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
-                        artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
-                        artistTitle.innerText = "Артисты";
-                        searchResultsContainer.appendChild(artistTitle);
+                    const img = data.avatar || ''; // Берем фото от Deezer
+                    const artistCard = document.createElement("div");
+                    artistCard.className = "artist-search-card";
+                    artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
+                    
+                    artistCard.innerHTML = `
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                        <div style="flex-grow: 1; overflow: hidden;">
+                            <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${data.name}</div>
+                            <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-solid fa-microphone-lines"></i> Артист</div>
+                        </div>
+                    `;
 
-                        // Отрисовываем карточку артиста
-                        artists.forEach(artist => {
-                            const img = artist.images && artist.images.length > 0 ? artist.images[0].url : '';
-                            const artistCard = document.createElement("div");
-                            artistCard.className = "artist-search-card";
-                            artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
-                            
-                            artistCard.innerHTML = `
-                                <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
-                                <div style="flex-grow: 1; overflow: hidden;">
-                                    <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
-                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-solid fa-microphone-lines"></i> Артист</div>
-                                </div>
-                            `;
+                    artistCard.addEventListener("click", () => {
+                        // Скрываем окно поиска и открываем профиль
+                        const searchInput = document.getElementById("genreSearchInput");
+                        if (searchInput) searchInput.value = "";
+                        searchResultsContainer.innerHTML = "";
+                        openArtistProfile(data.name);
+                    });
 
-                            artistCard.addEventListener("click", () => {
-                                openArtistProfile(artist.name);
-                            });
-
-                            searchResultsContainer.appendChild(artistCard);
-                        });
-                    }
+                    searchResultsContainer.appendChild(artistCard);
                 }
             } catch (error) {
                 console.error("Ошибка поиска артиста:", error);
@@ -1534,8 +1530,12 @@ const closeArtistBtn = document.getElementById("closeArtistBtn");
 if (closeArtistBtn && artistModal) {
     closeArtistBtn.addEventListener("click", () => {
         artistModal.classList.remove("active");
-        if (typeof currentAudio !== 'undefined' && currentAudio) {
+        // Останавливаем только если играет трек именно из модалки артиста
+        if (typeof currentAudio !== 'undefined' && currentAudio && currentAudio.trackId && currentAudio.trackId.startsWith('artist-track')) {
             currentAudio.pause();
+            if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
+                currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            }
         }
     });
 }
@@ -1549,7 +1549,12 @@ async function openArtistProfile(artistName) {
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     const followersDisplay = document.getElementById("artistFollowers");
     if (followersDisplay) followersDisplay.innerHTML = '<i class="fa-solid fa-users"></i> Загрузка...';
-    document.getElementById("artistAvatar").style.backgroundImage = "none";
+    
+    const avatarEl = document.getElementById("artistAvatar");
+    if (avatarEl) {
+        avatarEl.style.backgroundImage = "none";
+        avatarEl.style.borderColor = "transparent"; // Скрываем зеленый овал на время загрузки
+    }
     
     artistModal.classList.add("active");
 
@@ -1569,8 +1574,9 @@ async function openArtistProfile(artistName) {
         document.getElementById("artistNameDisplay").innerText = data.name;
 
         // Вставка аватара артиста
-        if (data.avatar) {
-            document.getElementById("artistAvatar").style.backgroundImage = `url('${data.avatar}')`;
+        if (data.avatar && avatarEl) {
+            avatarEl.style.backgroundImage = `url('${data.avatar}')`;
+            avatarEl.style.borderColor = "#8FDDCB"; // Возвращаем красивую рамку, только если фото найдено
         }
 
         // Вставка красиво отформатированного счетчика фанатов
