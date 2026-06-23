@@ -815,55 +815,49 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                 });
             }
 
-           // --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY ---
-const token = await getSpotifyAccessToken();
-if (token) {
-    try {
-        // Правильный API URL, разбитый для обхода фильтров
-        const apiBase = ["https://", "api.spotify", ".com/v1"].join("");
-        const res = await fetch(`${apiBase}/search?q=${encodeURIComponent(query)}&type=artist&limit=5`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        if (data.artists && data.artists.items) {
-            const artists = data.artists.items;
+// --- 2. ИЩЕМ АРТИСТОВ В SPOTIFY (ЧЕРЕЗ VERCEL) ---
+            try {
+                // Теперь поиск тоже идет через наш безотказный мотор Vercel
+                const res = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                if (data.found && data.artist) {
+                    const artists = [data.artist]; // Берем самого точного артиста
 
-            if (artists.length > 0) {
-                // Заголовок секции артистов
-                const artistTitle = document.createElement("h4");
-                const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
-                artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
-                artistTitle.innerText = "Артисты";
-                searchResultsContainer.appendChild(artistTitle);
+                    if (artists.length > 0) {
+                        // Заголовок секции артистов
+                        const artistTitle = document.createElement("h4");
+                        const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
+                        artistTitle.style.cssText = `color: rgba(168,159,205,0.6); font-size: 11px; margin: ${marginTop} 0 10px 0; text-transform: uppercase; letter-spacing: 1px;`;
+                        artistTitle.innerText = "Артисты";
+                        searchResultsContainer.appendChild(artistTitle);
 
-                // Отрисовываем карточки артистов
-                artists.forEach(artist => {
-                    const img = artist.images.length > 0 ? artist.images[0].url : '';
-                    const artistCard = document.createElement("div");
-                    artistCard.className = "artist-search-card";
-                    artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
-                    
-                    artistCard.innerHTML = `
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
-                        <div style="flex-grow: 1; overflow: hidden;">
-                            <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
-                            <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
-                        </div>
-                    `;
+                        // Отрисовываем карточку артиста
+                        artists.forEach(artist => {
+                            const img = artist.images && artist.images.length > 0 ? artist.images[0].url : '';
+                            const artistCard = document.createElement("div");
+                            artistCard.className = "artist-search-card";
+                            artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
+                            
+                            artistCard.innerHTML = `
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                                <div style="flex-grow: 1; overflow: hidden;">
+                                    <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
+                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
+                                </div>
+                            `;
 
-                    artistCard.addEventListener("click", () => {
-                        openArtistProfile(artist.name);
-                    });
+                            artistCard.addEventListener("click", () => {
+                                openArtistProfile(artist.name);
+                            });
 
-                    searchResultsContainer.appendChild(artistCard);
-                });
+                            searchResultsContainer.appendChild(artistCard);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Ошибка поиска артиста:", error);
             }
-        }
-    } catch (error) {
-        console.error("Ошибка поиска Spotify:", error);
-    }
-}
 
             // --- 3. ЕСЛИ НИЧЕГО НЕ НАЙДЕНО ВООБЩЕ ---
             if (searchResultsContainer.innerHTML === "") {
@@ -1557,37 +1551,10 @@ updateHistoryUI(); // Отрисовываем при старте
 // ==========================================
 // ==========================================
 // ==========================================
-// ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ)
+// ==========================================
+// ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ ЧЕРЕЗ VERCEL)
 // ==========================================
 
-// Адрес твоего сервера на Render
-const RENDER_SERVER = 'https://belyash-coder-github-io.onrender.com';
-const URL_API = 'https://api.spotify.com/v1';
-
-let spotifyToken = null;
-let tokenExpirationTime = 0;
-
-// 1. Получение токена через твой личный сервер на Render
-async function getSpotifyAccessToken() {
-    if (spotifyToken && Date.now() < tokenExpirationTime) {
-        return spotifyToken;
-    }
-
-    try {
-        const response = await fetch(`${RENDER_SERVER}/get-token`);
-        if (!response.ok) throw new Error("Сервер не вернул токен");
-        
-        const data = await response.json();
-        spotifyToken = data.access_token;
-        tokenExpirationTime = Date.now() + (data.expires_in - 300) * 1000;
-        return spotifyToken;
-    } catch (error) {
-        console.error("Ошибка при получении токена с нашего сервера:", error);
-        return null;
-    }
-}
-
-// 2. Глобальные переменные для окна артиста
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
@@ -1600,15 +1567,16 @@ if (closeArtistBtn && artistModal) {
     });
 }
 
-// 3. Главная функция генерации карточки
+// Главная функция генерации карточки
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     artistModal.classList.add("active");
 
     try {
-        // Обращаемся ТОЛЬКО к твоему настроенному серверу
+        // Обращаемся ТОЛЬКО к твоему настроенному серверу Vercel
         const response = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(artistName)}`);
+        const data = await response.json(); // <-- Вернул эту строчку на место!
 
         if (!data.found) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
