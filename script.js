@@ -1568,48 +1568,57 @@ if (closeArtistBtn && artistModal) {
 }
 
 // Главная функция генерации карточки
+// Главная функция генерации карточки (Last.fm + iTunes)
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     artistModal.classList.add("active");
 
     try {
-        // Обращаемся ТОЛЬКО к твоему настроенному серверу Vercel
+        // Обращаемся к нашему новому серверу Vercel
         const response = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(artistName)}`);
-        const data = await response.json(); // <-- Вернул эту строчку на место!
+        const data = await response.json();
 
-        if (!data.found) {
+        // Проверяем ошибку по новой структуре
+        if (data.error) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
             return;
         }
 
         // Отрисовка имени артиста
-        document.getElementById("artistNameDisplay").innerText = data.artist.name;
+        document.getElementById("artistNameDisplay").innerText = data.name;
 
-        // Отрисовка треков
-        if (data.tracks) {
+        // Отрисовка треков (из iTunes)
+        if (data.tracks && data.tracks.length > 0) {
             document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.map(track => `
                 <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.album.images[0]?.url || ''}'); background-size: cover; margin-right: 12px;"></div>
+                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.cover || ''}'); background-size: cover; margin-right: 12px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
                     <div style="flex-grow: 1; padding: 0 10px;">
                         <div style="color: #fff; font-size: 13px;">${track.name}</div>
+                        <div style="color: rgba(168,159,205,0.6); font-size: 10px; margin-top: 2px;">${track.album}</div>
                     </div>
                 </div>
             `).join('');
+        } else {
+            document.getElementById("artistTopTracksContainer").innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Треки не найдены</div>';
         }
 
-        // Отрисовка похожих артистов
-        if (data.related) {
-            document.getElementById("relatedArtistsContainer").innerHTML = data.related.map(rel => `
-                <div class="related-artist-card" onclick="openArtistProfile('${rel.name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
-                    <div class="related-artist-photo" style="background-image: url('${rel.images[0]?.url || ''}')"></div>
-                    <div class="related-artist-name">${rel.name}</div>
+        // Отрисовка похожих артистов (из Last.fm)
+        if (data.similar && data.similar.length > 0) {
+            document.getElementById("relatedArtistsContainer").innerHTML = data.similar.map(name => `
+                <div class="related-artist-card" onclick="openArtistProfile('${name.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                    <div class="related-artist-photo" style="background-color: #140f1c; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(143, 221, 203, 0.3);">
+                        <i class="fa-solid fa-music" style="color: rgba(143, 221, 203, 0.5);"></i>
+                    </div>
+                    <div class="related-artist-name">${name}</div>
                 </div>
             `).join('');
+        } else {
+            document.getElementById("relatedArtistsContainer").innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Нет данных</div>';
         }
 
     } catch (error) {
         console.error("Системная ошибка:", error);
-        document.getElementById("artistNameDisplay").innerText = "Ошибка соединения с сервером";
+        document.getElementById("artistNameDisplay").innerText = "Ошибка соединения";
     }
 }
