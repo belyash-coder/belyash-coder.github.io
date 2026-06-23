@@ -5,18 +5,24 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-// Безопасная расшифровка реальных адресов Spotify (защита от искажения ссылок)
 const tokenUrl = Buffer.from('aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbS9hcGkvdG9rZW4=', 'base64').toString('utf-8');
 const apiUrl = Buffer.from('aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjE=', 'base64').toString('utf-8');
 
-// Единый эндпоинт
 app.get('/search-artist', async (req, res) => {
     const { name } = req.query;
     if (!name) return res.status(400).json({ error: "Введите имя артиста" });
 
     try {
+        // Автоматическая очистка ключей от случайных пробелов
+        const clientId = (process.env.CLIENT_ID || '').trim();
+        const clientSecret = (process.env.CLIENT_SECRET || '').trim();
+
+        if (!clientId || !clientSecret) {
+            return res.status(500).json({ error: "Ключи доступа отсутствуют" });
+        }
+
         // 1. Получаем токен
-        const auth = Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64');
+        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
         const tokenResponse = await axios.post(tokenUrl,
             'grant_type=client_credentials', {
             headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -28,7 +34,7 @@ app.get('/search-artist', async (req, res) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!searchRes.data.artists.items.length) {
+        if (!searchRes.data.artists || !searchRes.data.artists.items.length) {
             return res.json({ found: false });
         }
 
@@ -44,17 +50,21 @@ app.get('/search-artist', async (req, res) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 5. Отправляем готовые данные в интерфейс
+        // 5. Отправляем готовые данные
         res.json({
             found: true,
             artist: artist,
-            tracks: tracksRes.data.tracks.slice(0, 5),
-            related: relatedRes.data.artists.slice(0, 5)
+            tracks: tracksRes.data.tracks ? tracksRes.data.tracks.slice(0, 5) : [],
+            related: relatedRes.data.artists ? relatedRes.data.artists.slice(0, 5) : []
         });
 
     } catch (error) {
-        console.error("Ошибка сервера:", error.message);
-        res.status(500).json({ error: "Ошибка при связи со Spotify" });
+        // Теперь ошибка не будет слепой
+        console.error("Системный сбой:", error.response ? error.response.data : error.message);
+        res.status(500).json({ 
+            error: "Ошибка связи", 
+            details: error.response ? error.response.data : error.message 
+        });
     }
 });
 
