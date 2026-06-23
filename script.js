@@ -1608,8 +1608,7 @@ async function openArtistProfile(artistName) {
 
     try {
         // Обращаемся ТОЛЬКО к твоему настроенному серверу
-        const response = await fetch(`https://belyash-coder-github-io.onrender.com/search-artist?name=${encodeURIComponent(artistName)}`);
-        const data = await response.json();
+        const response = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(artistName)}`);
 
         if (!data.found) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
