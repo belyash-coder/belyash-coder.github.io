@@ -5,61 +5,62 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-const tokenUrl = Buffer.from('aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbS9hcGkvdG9rZW4=', 'base64').toString('utf-8');
-const apiUrl = Buffer.from('aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjE=', 'base64').toString('utf-8');
+// Берем ключ Last.fm из настроек Vercel
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
 
 app.get('/search-artist', async (req, res) => {
-    const { name } = req.query;
-    if (!name) return res.status(400).json({ error: "Введите имя артиста" });
+    const artistName = req.query.name;
+
+    if (!artistName) {
+        return res.status(400).json({ error: 'Не указано имя артиста' });
+    }
 
     try {
-        const clientId = (process.env.CLIENT_ID || '').trim();
-        const clientSecret = (process.env.CLIENT_SECRET || '').trim();
-
-        if (!clientId || !clientSecret) {
-            return res.status(500).json({ error: "Ключи доступа отсутствуют" });
+        // 1. Получаем био и теги артиста из Last.fm
+        const infoUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&format=json&autocorrect=1`;
+        const infoResponse = await axios.get(infoUrl);
+        
+        if (infoResponse.data.error) {
+             return res.status(404).json({ error: 'Артист не найден в базе' });
         }
+        
+        const artistData = infoResponse.data.artist;
 
-        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        const tokenResponse = await axios.post(tokenUrl,
-            'grant_type=client_credentials', {
-            headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        const token = tokenResponse.data.access_token;
+        // 2. Получаем похожих артистов из Last.fm
+        const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
+        const similarResponse = await axios.get(similarUrl);
+        const similarArtists = similarResponse.data.similarartists.artist.map(a => a.name);
 
-        const searchRes = await axios.get(`${apiUrl}/search?q=${encodeURIComponent(name)}&type=artist&limit=1`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // 3. Ищем топ-треки с обложками и превью аудио в iTunes API (полностью бесплатно и без ключей)
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(artistData.name)}&entity=musicTrack&limit=20`;
+        const itunesResponse = await axios.get(itunesUrl);
+        
+        // Отбираем только те треки, у которых есть превью (30 секунд)
+        const topTracks = itunesResponse.data.results
+            .filter(track => track.previewUrl)
+            .slice(0, 10) // Берем 10 лучших
+            .map(track => ({
+                name: track.trackName,
+                preview_url: track.previewUrl,
+                cover: track.artworkUrl100.replace('100x100bb', '300x300bb'), // Увеличиваем качество обложки
+                album: track.collectionName
+            }));
 
-        if (!searchRes.data.artists || !searchRes.data.artists.items.length) {
-            return res.json({ found: false });
-        }
+        // Формируем чистый JSON для фронтенда
+        const responseData = {
+            name: artistData.name,
+            bio: artistData.bio && artistData.bio.summary ? artistData.bio.summary.split('<a')[0].trim() : '', // Чистим текст от HTML-ссылок
+            tags: artistData.tags && artistData.tags.tag ? artistData.tags.tag.map(t => t.name) : [],
+            similar: similarArtists,
+            tracks: topTracks
+        };
 
-        const artist = searchRes.data.artists.items[0];
-
-        const tracksRes = await axios.get(`${apiUrl}/artists/${artist.id}/top-tracks?market=US`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const relatedRes = await axios.get(`${apiUrl}/artists/${artist.id}/related-artists`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        res.json({
-            found: true,
-            artist: artist,
-            tracks: tracksRes.data.tracks ? tracksRes.data.tracks.slice(0, 5) : [],
-            related: relatedRes.data.artists ? relatedRes.data.artists.slice(0, 5) : []
-        });
+        res.json(responseData);
 
     } catch (error) {
-        console.error("Системный сбой:", error.response ? error.response.data : error.message);
-        res.status(500).json({ 
-            error: "Ошибка связи", 
-            details: error.response ? error.response.data : error.message 
-        });
+        console.error('Ошибка сервера:', error.message);
+        res.status(500).json({ error: 'Ошибка при сборе данных об артисте' });
     }
 });
 
-// Экспорт приложения для бессерверной среды Vercel
 module.exports = app;
