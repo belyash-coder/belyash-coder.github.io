@@ -246,29 +246,34 @@ if (button && wheel) {
 }
 
 // --- ЛОГИКА ЖАНРА ДНЯ (СИНХРОНИЗАЦИЯ ДЛЯ ВСЕХ) ---
-function getDailyGenreName(genresData) {
-    const genreNames = Object.keys(genresData);
-    const totalGenres = genreNames.length;
-    
-    if (totalGenres === 0) return null;
+function getDailyGenreName(validGenresArray) {
+    if (!validGenresArray || validGenresArray.length === 0) return null;
 
-    const now = new Date();
+    // ЖЕСТКАЯ СОРТИРОВКА: выравниваем массив по алфавиту
+    const sortedGenres = [...validGenresArray].sort();
+    const totalGenres = sortedGenres.length;
+
+    // 1. Получаем текущее время. Date.now() возвращает абсолютное время UTC везде.
+    // Прибавляем 3 часа для получения московского времени.
+    const moscowTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+    const year = moscowTime.getUTCFullYear();
+    const month = moscowTime.getUTCMonth() + 1; // Месяцы от 1 до 12
+    const day = moscowTime.getUTCDate();
+
+    // 2. Формируем целое число - сид сегодняшнего дня (например, 20260623)
+    const seed = year * 10000 + month * 100 + day;
+
+    // 3. Целочисленное хеширование (никаких дробей и Math.sin).
+    // Побитовые операции работают на 100% идентично во всех браузерах мира.
+    let h = seed;
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h = (h ^ (h >>> 16)) >>> 0; // Беззнаковое 32-битное число
+
+    // 4. Вычисляем остаток от деления - это и будет наш идеальный индекс
+    const dailyIndex = h % totalGenres;
     
-    // Сдвигаем время на +3 часа, чтобы полночь (смена жанра) наступала по московскому времени (UTC+3)
-    const msSinceEpoch = now.getTime() + (3 * 60 * 60 * 1000);
-    
-    // Вычисляем уникальный номер текущего дня
-    const daysSinceEpoch = Math.floor(msSinceEpoch / (1000 * 60 * 60 * 24));
-    
-    // Математический трюк: используем номер дня как "сид" для псевдослучайного числа.
-    // Функция Math.sin для одного и того же дня будет выдавать строго одинаковый результат у всех.
-    const x = Math.sin(daysSinceEpoch) * 10000;
-    const seededRandom = x - Math.floor(x);
-    
-    // Превращаем полученное число в индекс массива жанров
-    const dailyIndex = Math.floor(seededRandom * totalGenres);
-    
-    return genreNames[dailyIndex];
+    return sortedGenres[dailyIndex];
 }
 
 // --- НОВАЯ ЛОГИКА ОТКРЫТИЯ ОКНА (ДАННЫЕ ИЗ JSON + НАТИВНОЕ АУДИО И ОБЛОЖКИ) ---
