@@ -15,6 +15,7 @@ app.get('/search-artist', async (req, res) => {
     }
 
     try {
+        // 1. Получаем био и теги артиста из Last.fm
         const infoUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&format=json&autocorrect=1`;
         const infoResponse = await axios.get(infoUrl);
         
@@ -25,33 +26,27 @@ app.get('/search-artist', async (req, res) => {
         const artistData = infoResponse.data.artist;
         const correctedName = artistData.name;
 
-        // 2. Получаем похожих артистов и параллельно вытягиваем их фото из Deezer
+        // 2. Получаем похожих артистов и их фото
         const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(correctedName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
         const similarResponse = await axios.get(similarUrl);
         
         let similarArtists = [];
         if (similarResponse.data.similarartists && similarResponse.data.similarartists.artist) {
             const rawSimilar = similarResponse.data.similarartists.artist.slice(0, 8);
-            
-            // Promise.all делает запросы одновременно, сохраняя высокую скорость сервера
             similarArtists = await Promise.all(rawSimilar.map(async (simArtist) => {
                 let simAvatar = '';
                 try {
                     const dzUrl = `https://api.deezer.com/search/artist?q=${encodeURIComponent(simArtist.name)}`;
                     const dzRes = await axios.get(dzUrl);
                     if (dzRes.data && dzRes.data.data && dzRes.data.data.length > 0) {
-                        simAvatar = dzRes.data.data[0].picture_medium || ''; // medium (250x250) идеально для маленьких карточек
+                        simAvatar = dzRes.data.data[0].picture_medium || '';
                     }
-                } catch (err) {
-                    // Если Deezer не нашел фото конкретного артиста, просто пропускаем
-                }
-                return {
-                    name: simArtist.name,
-                    picture: simAvatar
-                };
+                } catch (err) {}
+                return { name: simArtist.name, picture: simAvatar };
             }));
         }
 
+        // 3. Получаем фото и фанатов главного артиста
         let avatarUrl = '';
         let fansCount = 0;
         try {
@@ -67,19 +62,48 @@ app.get('/search-artist', async (req, res) => {
             console.error('Ошибка Deezer API:', deezerError.message);
         }
 
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=30`;
-        const itunesResponse = await axios.get(itunesUrl);
-        
-        const topTracks = itunesResponse.data.results
-            .filter(track => track.previewUrl)
-            .filter(track => track.artistName.toLowerCase().includes(correctedName.toLowerCase()))
-            .slice(0, 10) 
-            .map(track => ({
-                name: track.trackName,
-                preview_url: track.previewUrl,
-                cover: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '300x300bb') : '', 
-                album: track.collectionName
-            }));
+        // 4. ТРЕКИ: План А (iTunes)
+        let topTracks = [];
+        try {
+            const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=30`;
+            const itunesResponse = await axios.get(itunesUrl);
+            
+            topTracks = itunesResponse.data.results
+                .filter(track => track.previewUrl)
+                .filter(track => track.artistName.toLowerCase().includes(correctedName.toLowerCase()))
+                .slice(0, 10) 
+                .map(track => ({
+                    name: track.trackName,
+                    preview_url: track.previewUrl,
+                    cover: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '300x300bb') : '', 
+                    album: track.collectionName
+                }));
+        } catch (err) {
+            console.error('Ошибка iTunes API:', err.message);
+        }
+
+        // 5. ТРЕКИ: План Б (Deezer Fallback), если iTunes вернул пустоту
+        if (topTracks.length === 0) {
+            try {
+                // Ищем треки с привязкой к конкретному артисту
+                const dzTracksUrl = `https://api.deezer.com/search?q=artist:"${encodeURIComponent(correctedName)}"&limit=30`;
+                const dzTracksResponse = await axios.get(dzTracksUrl);
+                
+                if (dzTracksResponse.data && dzTracksResponse.data.data) {
+                    topTracks = dzTracksResponse.data.data
+                        .filter(track => track.preview) // Строго с превью
+                        .slice(0, 10)
+                        .map(track => ({
+                            name: track.title,
+                            preview_url: track.preview,
+                            cover: track.album ? track.album.cover_medium : '', 
+                            album: track.album ? track.album.title : 'Неизвестный альбом'
+                        }));
+                }
+            } catch (err) {
+                console.error('Ошибка Deezer Tracks API:', err.message);
+            }
+        }
 
         const responseData = {
             name: correctedName,
