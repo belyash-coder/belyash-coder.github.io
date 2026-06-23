@@ -830,9 +830,7 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                     `;
 
                     artistCard.addEventListener("click", () => {
-                        // Скрываем окно поиска и открываем профиль
-                        const searchInput = document.getElementById("genreSearchInput");
-                        if (searchInput) searchInput.value = "";
+                        // Скрываем результаты, но НЕ стираем введенный текст
                         searchResultsContainer.innerHTML = "";
                         openArtistProfile(data.name);
                     });
@@ -1553,7 +1551,8 @@ async function openArtistProfile(artistName) {
     const avatarEl = document.getElementById("artistAvatar");
     if (avatarEl) {
         avatarEl.style.backgroundImage = "none";
-        avatarEl.style.borderColor = "transparent"; // Скрываем зеленый овал на время загрузки
+        avatarEl.style.borderColor = "transparent";
+        avatarEl.style.boxShadow = "none"; // Полностью скрываем свечение
     }
     
     artistModal.classList.add("active");
@@ -1576,7 +1575,8 @@ async function openArtistProfile(artistName) {
         // Вставка аватара артиста
         if (data.avatar && avatarEl) {
             avatarEl.style.backgroundImage = `url('${data.avatar}')`;
-            avatarEl.style.borderColor = "#8FDDCB"; // Возвращаем красивую рамку, только если фото найдено
+            avatarEl.style.borderColor = "#8FDDCB";
+            avatarEl.style.boxShadow = "0 0 20px rgba(143, 221, 203, 0.4)"; // Возвращаем свечение
         }
 
         // Вставка красиво отформатированного счетчика фанатов
@@ -1638,8 +1638,8 @@ async function openArtistProfile(artistName) {
                         return;
                     }
 
-                    // 2. Клик по кнопке или самой карточке (Play / Pause)
-                    if (e.target.closest('.play-btn') || e.target.closest('.track-card')) {
+                   // 2. Клик строго по кнопке (Play / Pause)
+                    if (e.target.closest('.play-btn')) {
                         if (currentAudio && currentAudio.trackId === trackId) {
                             if (!currentAudio.paused) {
                                 currentAudio.pause();

@@ -5,7 +5,6 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-// Берем ключ Last.fm из настроек Vercel
 const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
 
 app.get('/search-artist', async (req, res) => {
@@ -25,34 +24,55 @@ app.get('/search-artist', async (req, res) => {
         }
         
         const artistData = infoResponse.data.artist;
+        const correctedName = artistData.name;
 
-        // 2. Получаем похожих артистов из Last.fm
-        const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
+        // 2. Получаем похожих артистов
+        const similarUrl = `http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(correctedName)}&api_key=${LASTFM_API_KEY}&limit=8&format=json&autocorrect=1`;
         const similarResponse = await axios.get(similarUrl);
-        const similarArtists = similarResponse.data.similarartists.artist.map(a => a.name);
+        
+        let similarArtists = [];
+        if (similarResponse.data.similarartists && similarResponse.data.similarartists.artist) {
+            similarArtists = similarResponse.data.similarartists.artist.map(a => a.name);
+        }
 
-        // 3. Ищем топ-треки с обложками и превью аудио в iTunes API (полностью бесплатно и без ключей)
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(artistData.name)}&entity=musicTrack&limit=20`;
+        // 3. Запрос к Deezer API (Используем поисковый эндпоинт, чтобы находить фото по имени)
+        let avatarUrl = '';
+        let fansCount = 0;
+        try {
+            const deezerUrl = `https://api.deezer.com/search/artist?q=${encodeURIComponent(correctedName)}`;
+            const deezerResponse = await axios.get(deezerUrl);
+            
+            if (deezerResponse.data && deezerResponse.data.data && deezerResponse.data.data.length > 0) {
+                const deezerArtist = deezerResponse.data.data[0];
+                avatarUrl = deezerArtist.picture_xl || deezerArtist.picture_medium || '';
+                fansCount = deezerArtist.nb_fan || 0;
+            }
+        } catch (deezerError) {
+            console.error('Ошибка Deezer API:', deezerError.message);
+        }
+
+        // 4. Ищем топ-треки в iTunes (Добавлен фильтр attribute=artistTerm для точного совпадения имени)
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(correctedName)}&entity=musicTrack&attribute=artistTerm&limit=20`;
         const itunesResponse = await axios.get(itunesUrl);
         
-        // Отбираем только те треки, у которых есть превью (30 секунд)
         const topTracks = itunesResponse.data.results
             .filter(track => track.previewUrl)
-            .slice(0, 10) // Берем 10 лучших
+            .slice(0, 10) 
             .map(track => ({
                 name: track.trackName,
                 preview_url: track.previewUrl,
-                cover: track.artworkUrl100.replace('100x100bb', '300x300bb'), // Увеличиваем качество обложки
+                cover: track.artworkUrl100 ? track.artworkUrl100.replace('100x100bb', '300x300bb') : '', 
                 album: track.collectionName
             }));
 
-        // Формируем чистый JSON для фронтенда
         const responseData = {
-            name: artistData.name,
-            bio: artistData.bio && artistData.bio.summary ? artistData.bio.summary.split('<a')[0].trim() : '', // Чистим текст от HTML-ссылок
+            name: correctedName,
+            bio: artistData.bio && artistData.bio.summary ? artistData.bio.summary.split('<a')[0].trim() : '', 
             tags: artistData.tags && artistData.tags.tag ? artistData.tags.tag.map(t => t.name) : [],
             similar: similarArtists,
-            tracks: topTracks
+            tracks: topTracks,
+            avatar: avatarUrl,
+            fans: fansCount
         };
 
         res.json(responseData);
