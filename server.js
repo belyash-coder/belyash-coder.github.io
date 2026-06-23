@@ -5,22 +5,26 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-// Единый эндпоинт: сервер сам берет токен и сам собирает все данные
+// Безопасная расшифровка реальных адресов Spotify (защита от искажения ссылок)
+const tokenUrl = Buffer.from('aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbS9hcGkvdG9rZW4=', 'base64').toString('utf-8');
+const apiUrl = Buffer.from('aHR0cHM6Ly9hcGkuc3BvdGlmeS5jb20vdjE=', 'base64').toString('utf-8');
+
+// Единый эндпоинт
 app.get('/search-artist', async (req, res) => {
     const { name } = req.query;
     if (!name) return res.status(400).json({ error: "Введите имя артиста" });
 
     try {
-        // 1. Получаем токен (безопасно, ключи скрыты на сервере)
+        // 1. Получаем токен
         const auth = Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64');
-        const tokenResponse = await axios.post('https://accounts.spotify.com/api/token',
+        const tokenResponse = await axios.post(tokenUrl,
             'grant_type=client_credentials', {
             headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }
         });
         const token = tokenResponse.data.access_token;
 
         // 2. Ищем артиста
-        const searchRes = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1`, {
+        const searchRes = await axios.get(`${apiUrl}/search?q=${encodeURIComponent(name)}&type=artist&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -31,16 +35,16 @@ app.get('/search-artist', async (req, res) => {
         const artist = searchRes.data.artists.items[0];
 
         // 3. Получаем топовые треки
-        const tracksRes = await axios.get(`https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`, {
+        const tracksRes = await axios.get(`${apiUrl}/artists/${artist.id}/top-tracks?market=US`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         // 4. Получаем похожих артистов
-        const relatedRes = await axios.get(`https://api.spotify.com/v1/artists/${artist.id}/related-artists`, {
+        const relatedRes = await axios.get(`${apiUrl}/artists/${artist.id}/related-artists`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 5. Упаковываем и отправляем на фронтенд
+        // 5. Отправляем готовые данные в интерфейс
         res.json({
             found: true,
             artist: artist,
