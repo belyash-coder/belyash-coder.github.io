@@ -2495,27 +2495,27 @@ body.theme-light .seek-bar-container {
 }
 
 /* Контейнер с музыкой (крутим только его) */
-#spotifyTracksContainer {
-    flex-grow: 1; /* Автоматически занимает всё оставшееся место внутри окна */
-    overflow-y: auto; /* Включаем внутреннюю прокрутку для треков */
-    min-height: 0; /* Обязательный хак для работы скролла внутри flexbox */
-    padding-right: 10px; /* Отступ, чтобы скроллбар не наезжал на текст */
+#tracksContainer {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    min-height: 0; 
+    padding-right: 10px; 
     margin-right: -5px;
 }
 
 /* Стилизация самого ползунка прокрутки для эстетики */
-#spotifyTracksContainer::-webkit-scrollbar,
+#tracksContainer::-webkit-scrollbar,
 #genreDescription::-webkit-scrollbar {
     width: 4px;
 }
-#spotifyTracksContainer::-webkit-scrollbar-track,
+#tracksContainer::-webkit-scrollbar-track,
 #genreDescription::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
 }
-#spotifyTracksContainer::-webkit-scrollbar-thumb,
+#tracksContainer::-webkit-scrollbar-thumb,
 #genreDescription::-webkit-scrollbar-thumb {
-    background: #8FDDCB; /* Мятный акцент */
+    background: #8FDDCB; 
     border-radius: 4px;
 }
 /* ==========================================
@@ -2629,4 +2629,36 @@ body.theme-light .seek-bar-container {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+/* --- СТИЛИ КАРТОЧЕК ТРЕКОВ В ПРОФИЛЕ АРТИСТА --- */
+.artist-track-card {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.artist-track-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(143, 221, 203, 0.3); /* Мятный акцент при наведении */
+}
+
+/* Скрываем сикбар, если трек не играет (для чистоты интерфейса), но оставляем место */
+.artist-track-card .seek-bar-container {
+    background: rgba(255, 255, 255, 0.1);
+    height: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+}
+
+.artist-track-card .seek-bar-progress {
+    background: #8FDDCB; /* Наш фирменный мятный цвет */
+    height: 100%;
+    width: 0%;
+    transition: width 0.1s linear;
 }

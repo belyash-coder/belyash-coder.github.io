@@ -1,10 +1,6 @@
 // ==========================================
 // 1. ИНИЦИАЛИЗАЦИЯ И ЗАГРУЗКА БАЗЫ
 // ==========================================
-const cfg = {
-    u: ["api", "spotify", "com", "v1"].join("."),
-    p: "https://"
-};
 // --- ИНИЦИАЛИЗАЦИЯ FIREBASE (Для кнопки Google) ---
 const firebaseConfig = {
     apiKey: "AIzaSyApms5m5o0JPl1Y4Jqubu5NLgQN_KQJa6A",
@@ -232,16 +228,8 @@ let currentAudio = null;
 let currentPlayBtn = null;
 
 // === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
-// === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
-// === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
 function renderTracksInModal(genreName) {
-    // Обновляем кнопку Spotify
-    const spotifySearchBtn = document.getElementById("spotifySearchBtn");
-    if (spotifySearchBtn) {
-        spotifySearchBtn.style.display = "block";
-        spotifySearchBtn.href = "https://open.spotify.com/search/" + encodeURIComponent(genreName);
-    }
-    const container = document.getElementById("spotifyTracksContainer");
+    const container = document.getElementById("tracksContainer");
     if (!container) return;
 
     container.innerHTML = `
@@ -443,11 +431,11 @@ if (rouletteBox && modal && closeModalBtn) {
         
         if (currentAudio) {
             currentAudio.pause();
-            if (currentPlayBtn) currentPlayBtn.innerText = "▶";
+            if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
         }
         
         setTimeout(() => {
-            document.getElementById("spotifyTracksContainer").innerHTML = ""; 
+            document.getElementById("tracksContainer").innerHTML = ""; 
         }, 300); 
     };
 
@@ -843,7 +831,7 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                                 <div style="width: 40px; height: 40px; border-radius: 50%; background-image: url('${img}'); background-size: cover; background-position: center; margin-right: 15px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
                                 <div style="flex-grow: 1; overflow: hidden;">
                                     <div style="color: #fff; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${artist.name}</div>
-                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-brands fa-spotify"></i> Spotify Artist</div>
+                                    <div style="color: rgba(143, 221, 203, 0.8); font-size: 11px;"><i class="fa-solid fa-microphone-lines"></i> Артист</div>
                                 </div>
                             `;
 
@@ -1538,22 +1526,7 @@ if (clearHistoryBtn) {
 }
 
 updateHistoryUI(); // Отрисовываем при старте
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ==========================================
-// ИНТЕГРАЦИЯ SPOTIFY API (ПРОФИЛИ АРТИСТОВ ЧЕРЕЗ VERCEL)
-// ==========================================
+
 
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
@@ -1567,40 +1540,145 @@ if (closeArtistBtn && artistModal) {
     });
 }
 
-// Главная функция генерации карточки
-// Главная функция генерации карточки (Last.fm + iTunes)
+
+// Главная функция генерации карточки (Last.fm + iTunes + Deezer)
 async function openArtistProfile(artistName) {
     if (!artistModal) return;
+    
+    // Сбрасываем старые данные перед новой загрузкой
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
+    const followersDisplay = document.getElementById("artistFollowers");
+    if (followersDisplay) followersDisplay.innerHTML = '<i class="fa-solid fa-users"></i> Загрузка...';
+    document.getElementById("artistAvatar").style.backgroundImage = "none";
+    
     artistModal.classList.add("active");
 
     try {
-        // Обращаемся к нашему новому серверу Vercel
+        // Обращаемся к нашему обновленному серверу Vercel
         const response = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(artistName)}`);
         const data = await response.json();
 
-        // Проверяем ошибку по новой структуре
+        // Проверяем ошибку 
         if (data.error) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
+            if (followersDisplay) followersDisplay.innerHTML = "";
             return;
         }
 
         // Отрисовка имени артиста
         document.getElementById("artistNameDisplay").innerText = data.name;
 
-        // Отрисовка треков (из iTunes)
+        // Вставка аватара артиста
+        if (data.avatar) {
+            document.getElementById("artistAvatar").style.backgroundImage = `url('${data.avatar}')`;
+        }
+
+        // Вставка красиво отформатированного счетчика фанатов
+        if (followersDisplay) {
+            if (data.fans && data.fans > 0) {
+                const formattedFans = data.fans.toLocaleString('ru-RU');
+                followersDisplay.innerHTML = `<i class="fa-solid fa-users"></i> ${formattedFans} фанатов`;
+            } else {
+                followersDisplay.innerHTML = `<i class="fa-solid fa-music"></i> Исполнитель`;
+            }
+        }
+
+       // Отрисовка треков (из iTunes) с логикой плеера
+        const tracksContainer = document.getElementById("artistTopTracksContainer");
+        tracksContainer.innerHTML = ""; // Очищаем контейнер
+
         if (data.tracks && data.tracks.length > 0) {
-            document.getElementById("artistTopTracksContainer").innerHTML = data.tracks.map(track => `
-                <div class="track-card" style="margin-bottom: 10px; display: flex; align-items: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                    <div style="width: 40px; height: 40px; border-radius: 4px; background-image: url('${track.cover || ''}'); background-size: cover; margin-right: 12px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
-                    <div style="flex-grow: 1; padding: 0 10px;">
-                        <div style="color: #fff; font-size: 13px;">${track.name}</div>
-                        <div style="color: rgba(168,159,205,0.6); font-size: 10px; margin-top: 2px;">${track.album}</div>
+            data.tracks.forEach((track, index) => {
+                const trackId = `artist-track-${index}`; 
+                
+                const card = document.createElement("div");
+                card.className = "track-card artist-track-card";
+                
+                card.innerHTML = `
+                    <div class="track-left" style="flex-grow: 1; min-width: 0; display: flex; align-items: center;">
+                        <div style="width: 45px; height: 45px; min-width: 45px; border-radius: 4px; background-image: url('${track.cover || ''}'); background-size: cover; margin-right: 12px; background-color: #140f1c; border: 1px solid rgba(143, 221, 203, 0.3);"></div>
+                        <div class="track-info" style="width: 100%; overflow: hidden; padding-right: 10px;">
+                            <div class="track-title" style="color: #fff; font-size: 13px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.name}</div>
+                            <div class="track-artist" style="color: rgba(168,159,205,0.6); font-size: 10px; margin-top: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${track.album}</div>
+                            <div class="seek-bar-container" id="seek-container-${trackId}" style="margin-top: 6px;">
+                                <div class="seek-bar-progress" id="seek-progress-${trackId}"></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                    <div class="play-btn" id="btn-${trackId}" data-audio-url="${track.preview_url}">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                `;
+                
+                tracksContainer.appendChild(card);
+
+                // Логика воспроизведения
+                card.addEventListener("click", function(e) {
+                    const playBtn = document.getElementById(`btn-${trackId}`);
+                    const audioUrl = playBtn.dataset.audioUrl;
+                    const seekBarContainer = document.getElementById(`seek-container-${trackId}`);
+                    const progressBar = document.getElementById(`seek-progress-${trackId}`);
+
+                    if (!audioUrl) return; 
+
+                    // 1. Клик по сикбару (перемотка)
+                    if (e.target.closest('.seek-bar-container')) {
+                        if (currentAudio && currentAudio.trackId === trackId) {
+                            const rect = seekBarContainer.getBoundingClientRect();
+                            const clickX = e.clientX - rect.left;
+                            const percent = clickX / rect.width;
+                            currentAudio.currentTime = percent * currentAudio.duration;
+                        }
+                        return;
+                    }
+
+                    // 2. Клик по кнопке или самой карточке (Play / Pause)
+                    if (e.target.closest('.play-btn') || e.target.closest('.track-card')) {
+                        if (currentAudio && currentAudio.trackId === trackId) {
+                            if (!currentAudio.paused) {
+                                currentAudio.pause();
+                                playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                            } else {
+                                currentAudio.play();
+                                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                            }
+                            return;
+                        }
+                        
+                        // Выключаем игравший до этого трек и сбрасываем его ползунок
+                        if (currentAudio) {
+                            currentAudio.pause();
+                            if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                            const prevProgress = document.getElementById(`seek-progress-${currentAudio.trackId}`);
+                            if (prevProgress) prevProgress.style.width = '0%';
+                        }
+                        
+                        // Запускаем новый
+                        currentAudio = new Audio(audioUrl);
+                        currentAudio.trackId = trackId;
+                        currentPlayBtn = playBtn;
+                        
+                        currentAudio.play();
+                        playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
+                        
+                        // Движение сикбара
+                        currentAudio.addEventListener('timeupdate', () => {
+                            if (currentAudio.duration) {
+                                const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
+                                if (progressBar) progressBar.style.width = percent + '%';
+                            }
+                        });
+
+                        // Когда трек закончился
+                        currentAudio.onended = () => { 
+                            playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
+                            if (progressBar) progressBar.style.width = '0%'; 
+                        };
+                    }
+                });
+            });
         } else {
-            document.getElementById("artistTopTracksContainer").innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Треки не найдены</div>';
+            tracksContainer.innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Треки не найдены</div>';
         }
 
         // Отрисовка похожих артистов (из Last.fm)
@@ -1620,5 +1698,6 @@ async function openArtistProfile(artistName) {
     } catch (error) {
         console.error("Системная ошибка:", error);
         document.getElementById("artistNameDisplay").innerText = "Ошибка соединения";
+        if (followersDisplay) followersDisplay.innerHTML = "";
     }
 }
