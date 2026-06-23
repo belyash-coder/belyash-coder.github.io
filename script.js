@@ -11,56 +11,73 @@ const firebaseConfig = {
     appId: "1:288570895876:web:249cc37618866560518f51"
 };
 
-// Защита от повторной инициализации Firebase
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// --- ЗАГРУЗКА НАШЕЙ БАЗЫ ЖАНРОВ ИЗ JSON ---
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ БАЗЫ ---
 let globalDatabase = {};
-let genres = []; // Массив только названий (для рулетки)
-let appGenres = []; // Массив объектов (для поиска и Жанра дня)
+let genres = []; 
+let appGenres = []; 
 
-// --- ЛОГИКА ЖАНРА ДНЯ (СИНХРОНИЗАЦИЯ ДЛЯ ВСЕХ) ---
-function getDailyGenreName(validGenresArray) {
-    if (!validGenresArray || validGenresArray.length === 0) return null;
+// --- ЛОГИКА ЖАНРА ДНЯ (АБСОЛЮТНАЯ СИНХРОНИЗАЦИЯ) ---
+function getDailyGenreName(genresRawData) {
+    // Берем ВСЕ сырые ключи из базы и жестко сортируем
+    const allGenres = Object.keys(genresRawData).sort();
+    if (allGenres.length === 0) return null;
 
-    // ЖЕСТКАЯ СОРТИРОВКА: выравниваем массив по алфавиту, 
-    // чтобы все браузеры (Safari, Chrome и т.д.) видели одинаковый порядок
-    const sortedGenres = [...validGenresArray].sort();
-    
-    const totalGenres = sortedGenres.length;
+    const moscowTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
+    const year = moscowTime.getUTCFullYear();
+    const month = moscowTime.getUTCMonth() + 1;
+    const day = moscowTime.getUTCDate();
 
-    const now = new Date();
-    // Сдвигаем время на +3 часа, чтобы полночь наступала по московскому времени
-    const msSinceEpoch = now.getTime() + (3 * 60 * 60 * 1000); 
-    const daysSinceEpoch = Math.floor(msSinceEpoch / (1000 * 60 * 60 * 24));
-    
-    // Математический трюк: sin от номера дня всегда одинаков
-    const x = Math.sin(daysSinceEpoch) * 10000;
-    const seededRandom = x - Math.floor(x);
-    
-    const dailyIndex = Math.floor(seededRandom * totalGenres);
-    return sortedGenres[dailyIndex];
+    // Сид сегодняшнего дня (например, 20260623)
+    const seed = year * 10000 + month * 100 + day;
+
+    // Идеальный детерминированный генератор случайных чисел
+    function randomFromSeed(s) {
+        s = Math.imul(s ^ (s >>> 15), 1597334677);
+        s = Math.imul(s ^ (s >>> 15), 3812015801);
+        return ((s ^ (s >>> 16)) >>> 0) / 4294967296;
+    }
+
+    let attempt = 0;
+    while (attempt < 1000) {
+        const rand = randomFromSeed(seed + attempt);
+        const index = Math.floor(rand * allGenres.length);
+        const candidateName = allGenres[index];
+        const candidateData = genresRawData[candidateName];
+
+        const isDescEmpty = !candidateData.description || 
+                            candidateData.description.includes("Описание пока не собрано") || 
+                            candidateData.description.includes("Описание временно недоступно");
+        const hasNoTracks = !candidateData.tracks || candidateData.tracks.length === 0;
+
+        if (!isDescEmpty && !hasNoTracks) {
+            return candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
+        }
+        attempt++;
+    }
+    return null;
 }
 
 // --- ЗАГРУЗКА БАЗЫ И ИНИЦИАЛИЗАЦИЯ ---
-// Добавляем текущую дату в запрос, чтобы сбрасывать кэш браузеров ровно раз в сутки
 const cacheBuster = new Date().toISOString().slice(0, 10);
 fetch(`genres_data.json?v=${cacheBuster}`)
     .then(response => response.json())
     .then(data => {
         globalDatabase = data;
         
+        // Вычисляем Жанр дня ДО фильтрации, из сырой базы
+        const dailyGenreName = getDailyGenreName(data);
+        
         genres = [];
         appGenres = [];
-        let skippedCount = 0; // Счетчик пропущенных жанров для консоли
+        let skippedCount = 0;
         
-        // Прогоняем все жанры из файла
         for (let key in data) {
             const genreData = data[key];
             
-            // --- БЕЗЖАЛОСТНЫЙ ФИЛЬТР ---
             const isDescEmpty = !genreData.description || 
                                 genreData.description.includes("Описание пока не собрано") || 
                                 genreData.description.includes("Описание временно недоступно");
@@ -71,10 +88,8 @@ fetch(`genres_data.json?v=${cacheBuster}`)
                 skippedCount++;
                 continue; 
             }
-            // ---------------------------
 
             let niceName = key.charAt(0).toUpperCase() + key.slice(1);
-            
             genres.push(niceName);
             appGenres.push({
                 name: niceName,
@@ -84,10 +99,6 @@ fetch(`genres_data.json?v=${cacheBuster}`)
         
         console.log(`✅ База загружена! Рабочих жанров: ${genres.length}. Отфильтровано пустых: ${skippedCount}`);
         
-        // Вычисляем Жанр дня строго из массива рабочих жанров
-        const dailyGenreName = getDailyGenreName(genres);
-        
-        // Передаем вычисленный жанр в функцию отрисовки
         if (typeof setDailyGenre === 'function' && dailyGenreName) {
             setDailyGenre(dailyGenreName);
         }
@@ -98,19 +109,12 @@ fetch(`genres_data.json?v=${cacheBuster}`)
 // ==========================================
 // 2. ПЕРЕМЕННЫЕ ИНТЕРФЕЙСА
 // ==========================================
-
-// База жанров (из database.js для работы рулетки)
-// const genres = typeof musicGenres !== 'undefined' ? musicGenres : [];
-
-// Левое меню (фильтры)
 const filterBtn = document.getElementById("filterBtn");
 const filterModal = document.getElementById("filterModal");
 const closeFilterBtn = document.getElementById("closeFilterBtn"); 
-// Теперь переменные сразу пытаются прочитать память браузера
 let activeFilter = localStorage.getItem("activeFilter") || "all"; 
 let activeRegion = localStorage.getItem("activeRegion") || "all";
 
-// Рулетка и главная страница
 const wheel = document.getElementById("rouletteWheel");
 const button = document.getElementById("spinBtn");
 const dailyGenreDisplay = document.getElementById("dailyGenre");
@@ -118,7 +122,6 @@ const hint = document.getElementById("genreHint");
 const orDivider = document.getElementById("orDivider");
 const rouletteBox = document.querySelector(".roulette-box");
 
-// Модальное окно (информация о жанре)
 const modal = document.getElementById("genreModal");
 const closeModalBtn = document.getElementById("closeModalBtn");
 const modalTitle = document.getElementById("modalGenreTitle");
@@ -129,14 +132,6 @@ let hasResult = false;
 // ==========================================
 // 3. ОСНОВНАЯ ЛОГИКА ПРИЛОЖЕНИЯ
 // ==========================================
-
-// ЖАНР ДНЯ
-if (dailyGenreDisplay && genres.length > 0) {
-    const today = new Date();
-    const dateSeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate(); 
-    const dailyIndex = dateSeed % genres.length;
-    dailyGenreDisplay.innerText = genres[dailyIndex];
-}
 
 // ЛОГИКА РУЛЕТКИ
 if (button && wheel) {
@@ -197,7 +192,6 @@ if (button && wheel) {
             wheel.style.transform = `translateY(-${stopPosition}px)`;
         }, 50);
 
-        // --- ТОТ САМЫЙ ТАЙМЕР ОСТАНОВКИ РУЛЕТКИ ---
         setTimeout(() => {
             isSpinning = false;
             button.style.opacity = "1";
@@ -209,21 +203,17 @@ if (button && wheel) {
             
             hasResult = true;
             rouletteBox.style.cursor = "pointer";
-            // ---> СОХРАНЕНИЕ В ИСТОРИЮ <---
+            
             const finalRolledGenre = wheel.lastElementChild.innerText;
             
-            // Удаляем дубль (если жанр уже был), чтобы перенести его на самый верх
             spinHistory = spinHistory.filter(g => g !== finalRolledGenre);
             spinHistory.push(finalRolledGenre);
             
-            // Храним только последние 30 штук, чтобы не забивать память
             if (spinHistory.length > 30) spinHistory.shift();
             
             localStorage.setItem("spinHistory", JSON.stringify(spinHistory));
             if (typeof updateHistoryUI === 'function') updateHistoryUI();
-            // -----------------------------
 
-            // ---> НАША НОВАЯ ЛОГИКА ПОЯВЛЕНИЯ ПОДСКАЗКИ <---
             let isUserLoggedIn = false;
             if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
                 isUserLoggedIn = true;
@@ -232,7 +222,6 @@ if (button && wheel) {
             const hasSeenPrompt = localStorage.getItem("hasSeenRegPrompt");
             
             if (!isUserLoggedIn && !hasSeenPrompt) {
-                // Ждем 1 секунду после остановки рулетки
                 setTimeout(() => {
                     const promptModal = document.getElementById("registerPromptModal");
                     if (promptModal) {
@@ -241,49 +230,14 @@ if (button && wheel) {
                     }
                 }, 1000); 
             }
-            // ------------------------------------------------
-
         }, 4550);
     });
 }
 
-// --- ЛОГИКА ЖАНРА ДНЯ (СИНХРОНИЗАЦИЯ ДЛЯ ВСЕХ) ---
-function getDailyGenreName(validGenresArray) {
-    if (!validGenresArray || validGenresArray.length === 0) return null;
-
-    // ЖЕСТКАЯ СОРТИРОВКА: выравниваем массив по алфавиту
-    const sortedGenres = [...validGenresArray].sort();
-    const totalGenres = sortedGenres.length;
-
-    // 1. Получаем текущее время. Date.now() возвращает абсолютное время UTC везде.
-    // Прибавляем 3 часа для получения московского времени.
-    const moscowTime = new Date(Date.now() + (3 * 60 * 60 * 1000));
-    const year = moscowTime.getUTCFullYear();
-    const month = moscowTime.getUTCMonth() + 1; // Месяцы от 1 до 12
-    const day = moscowTime.getUTCDate();
-
-    // 2. Формируем целое число - сид сегодняшнего дня (например, 20260623)
-    const seed = year * 10000 + month * 100 + day;
-
-    // 3. Целочисленное хеширование (никаких дробей и Math.sin).
-    // Побитовые операции работают на 100% идентично во всех браузерах мира.
-    let h = seed;
-    h = Math.imul(h ^ (h >>> 16), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h = (h ^ (h >>> 16)) >>> 0; // Беззнаковое 32-битное число
-
-    // 4. Вычисляем остаток от деления - это и будет наш идеальный индекс
-    const dailyIndex = h % totalGenres;
-    
-    return sortedGenres[dailyIndex];
-}
-
-// --- НОВАЯ ЛОГИКА ОТКРЫТИЯ ОКНА (ДАННЫЕ ИЗ JSON + НАТИВНОЕ АУДИО И ОБЛОЖКИ) ---
-
+// --- ЛОГИКА АУДИО И ОБЛОЖЕК ---
 let currentAudio = null;
 let currentPlayBtn = null;
 
-// === УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ЗАГРУЗКИ ТРЕКОВ ===
 function renderTracksInModal(genreName) {
     const container = document.getElementById("tracksContainer");
     if (!container) return;
@@ -303,17 +257,14 @@ function renderTracksInModal(genreName) {
         return;
     }
 
-    container.innerHTML = ""; // Убираем спиннер
+    container.innerHTML = ""; 
     
-    // СОРТИРОВКА: Сначала треки с ID от Apple (можно слушать), затем остальные (с замочком)
     const sortedTracks = [...genreInfo.tracks].sort((a, b) => {
         const aHasApple = a.streaming_ids?.apple ? 1 : 0;
         const bHasApple = b.streaming_ids?.apple ? 1 : 0;
-        // Те, у кого есть Apple (1), встают выше тех, у кого нет (0)
         return bHasApple - aHasApple; 
     });
 
-    // Берем все отсортированные треки, а не только первые 3
     const tracksToShow = sortedTracks; 
 
     tracksToShow.forEach(track => {
@@ -326,7 +277,6 @@ function renderTracksInModal(genreName) {
         card.className = "track-card";
 
        if (appleId) {
-            // Добавили контейнер сикбара под артиста и настроили flex, чтобы ничего не вылезало за края
             card.innerHTML = `
                 <div class="track-left" style="flex-grow: 1; min-width: 0;">
                     <div class="track-cover" id="cover-${appleId}">
@@ -334,9 +284,7 @@ function renderTracksInModal(genreName) {
                     </div>
                     <div class="track-info" style="width: 100%;">
                         <div class="track-title">${title}</div>
-                        
                         <div class="track-artist" style="cursor: pointer; color: #8FDDCB; text-decoration: underline; text-decoration-color: rgba(143, 221, 203, 0.3); transition: 0.3s;" onclick="openArtistProfile('${artist.replace(/'/g, "\\'")}')">${artist}</div>
-                        
                         <div class="seek-bar-container" id="seek-container-${appleId}">
                             <div class="seek-bar-progress" id="seek-progress-${appleId}"></div>
                         </div>
@@ -365,7 +313,6 @@ function renderTracksInModal(genreName) {
                 })
                 .catch(err => console.error("Ошибка загрузки Apple:", err));
 
-            // Логика воспроизведения и сикбара
             card.addEventListener("click", function(e) {
                 const playBtn = document.getElementById(`btn-${appleId}`);
                 const audioUrl = playBtn.dataset.audioUrl;
@@ -374,7 +321,6 @@ function renderTracksInModal(genreName) {
 
                 if (!audioUrl) return; 
 
-                // 1. ЕСЛИ КЛИКНУЛИ ПО СИКБАРУ -> Только перематываем
                 if (e.target.closest('.seek-bar-container')) {
                     if (currentAudio && currentAudio.trackId === appleId) {
                         const rect = seekBarContainer.getBoundingClientRect();
@@ -382,13 +328,10 @@ function renderTracksInModal(genreName) {
                         const percent = clickX / rect.width;
                         currentAudio.currentTime = percent * currentAudio.duration;
                     }
-                    return; // Выходим из функции, трек не ставится на паузу
+                    return; 
                 }
 
-                // 2. ЕСЛИ КЛИКНУЛИ ТОЛЬКО ПО КНОПКЕ PLAY/PAUSE -> Запускаем/Останавливаем
                 if (e.target.closest('.play-btn')) {
-                    
-                    // Стандартная пауза/плей для текущего трека
                     if (currentAudio && currentAudio.trackId === appleId) {
                         if (!currentAudio.paused) {
                             currentAudio.pause();
@@ -400,7 +343,6 @@ function renderTracksInModal(genreName) {
                         return;
                     }
                     
-                    // Если играл другой трек - выключаем его и обнуляем его сикбар
                     if (currentAudio) {
                         currentAudio.pause();
                         if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
@@ -408,7 +350,6 @@ function renderTracksInModal(genreName) {
                         if (prevProgress) prevProgress.style.width = '0%';
                     }
                     
-                    // Запускаем новый трек
                     currentAudio = new Audio(audioUrl);
                     currentAudio.trackId = appleId;
                     currentPlayBtn = playBtn;
@@ -416,7 +357,6 @@ function renderTracksInModal(genreName) {
                     currentAudio.play();
                     playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
                     
-                    // --- СИНХРОНИЗАЦИЯ СИКБАРА ---
                     currentAudio.addEventListener('timeupdate', () => {
                         if (currentAudio.duration) {
                             const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
@@ -424,16 +364,14 @@ function renderTracksInModal(genreName) {
                         }
                     });
 
-                    // Когда трек закончился
                     currentAudio.onended = () => { 
                         playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
-                        if (progressBar) progressBar.style.width = '0%'; // Сбрасываем сикбар
+                        if (progressBar) progressBar.style.width = '0%'; 
                     };
                 }
             });
 
         } else {
-            // ЕСЛИ НЕТ ID APPLE MUSIC - заглушка с замочком
             card.innerHTML = `
                 <div class="track-left">
                     <div class="track-cover" style="opacity: 0.5;">
@@ -458,12 +396,11 @@ function renderTracksInModal(genreName) {
 if (rouletteBox && modal && closeModalBtn) {
     rouletteBox.addEventListener("click", () => {
         if (hasResult && !isSpinning) {
+            history.pushState({ modal: 'genre' }, ''); // Запись в историю для кнопки Назад
             const finalGenre = wheel.lastElementChild.innerText;
             modalTitle.innerText = finalGenre;
             
             const descriptionBlock = document.getElementById("genreDescription");
-            
-            // Находим описание в базе данных (переведя в нижний регистр)
             const dbKey = finalGenre.toLowerCase();
             const genreInfo = globalDatabase[dbKey];
 
@@ -473,15 +410,11 @@ if (rouletteBox && modal && closeModalBtn) {
                 descriptionBlock.innerHTML = `Погрузитесь в атмосферу <b>${finalGenre}</b>.<br><br><span style="font-size: 0.9em; opacity: 0.7;">Информация о жанре скоро появится.</span>`;
             }
 
-            // Вызываем нашу новую мощную функцию!
             renderTracksInModal(finalGenre);
-
             modal.classList.add("active");
         }
     });
     
-    // ... логика закрытия модалки closeGenreModal остается как была
-
     const closeGenreModal = () => {
         modal.classList.remove("active");
         
@@ -506,13 +439,11 @@ if (rouletteBox && modal && closeModalBtn) {
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
     
-    // Заставка
     const splash = document.getElementById("splashScreen");
     if (splash) {
         setTimeout(() => splash.classList.add("hidden"), 3300);
     }
 
-    // Бургер-меню (справа)
     const burgerBtn = document.getElementById('burgerBtn');
     const sidebarMenu = document.getElementById('sidebarMenu');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -531,13 +462,10 @@ window.addEventListener("DOMContentLoaded", () => {
         sidebarOverlay.addEventListener('click', closeSidebar);
     }
 
-    // Модальное окно фильтров (слева)
     const chips = document.querySelectorAll(".filter-chip");
     const rChips = document.querySelectorAll(".region-chip");
 
     if (filterBtn && filterModal && closeFilterBtn) {
-        
-        // --- АВТО-АКТИВАЦИЯ СОХРАНЕННЫХ ФИЛЬТРОВ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ---
         chips.forEach(chip => {
             if (chip.getAttribute("data-filter") === activeFilter) {
                 chip.classList.add("active");
@@ -553,7 +481,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 chip.classList.remove("active");
             }
         });
-        // -----------------------------------------------------------------
 
         filterBtn.addEventListener("click", () => {
             if (!isSpinning) filterModal.classList.add("active");
@@ -570,7 +497,7 @@ window.addEventListener("DOMContentLoaded", () => {
                     chips.forEach(c => c.classList.remove("active"));
                     chip.classList.add("active");
                     activeFilter = chip.getAttribute("data-filter");
-                    localStorage.setItem("activeFilter", activeFilter); // Сохраняем в память!
+                    localStorage.setItem("activeFilter", activeFilter); 
                 });
             });
         }
@@ -581,13 +508,12 @@ window.addEventListener("DOMContentLoaded", () => {
                     rChips.forEach(c => c.classList.remove("active"));
                     chip.classList.add("active");
                     activeRegion = chip.getAttribute("data-region");
-                    localStorage.setItem("activeRegion", activeRegion); // Сохраняем в память!
+                    localStorage.setItem("activeRegion", activeRegion); 
                 });
             });
         }
     }
 
-    // Нижняя навигация
     const navItems = document.querySelectorAll('.nav-item');
     if (navItems.length > 0) {
         navItems.forEach(item => {
@@ -598,87 +524,55 @@ window.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
 // --- ЛОГИКА БОКОВОГО МЕНЮ НАСТРОЕК ---
 const openSettingsBtn = document.getElementById("openSettingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 
 if (openSettingsBtn && closeSettingsBtn && settingsMenu) {
-    // Открытие шторки
     openSettingsBtn.addEventListener("click", () => {
         settingsMenu.classList.add("active");
     });
-
-    // Закрытие шторки по крестику
     closeSettingsBtn.addEventListener("click", () => {
         settingsMenu.classList.remove("active");
     });
-
-    // Закрытие при клике мимо меню (на темный фон страницы)
     document.addEventListener("click", (event) => {
         if (!settingsMenu.contains(event.target) && event.target !== openSettingsBtn) {
             settingsMenu.classList.remove("active");
         }
     });
 }
-// --- ЛОГИКА БОКОВОГО МЕНЮ И АВТОРИЗАЦИИ ---
-
-const burgerBtn = document.getElementById("burgerBtn");
-const sidebarMenu = document.getElementById("sidebarMenu");
-const sidebarOverlay = document.getElementById("sidebarOverlay");
-const closeSidebarBtn = document.getElementById("closeSidebarBtn");
 
 const authModal = document.getElementById("authModal");
 const sidebarAuthBtn = document.getElementById("sidebarAuthBtn");
 const closeAuthBtn = document.getElementById("closeAuthBtn");
 
-if (burgerBtn && sidebarMenu && sidebarOverlay) {
-    // Открытие бокового меню
-    burgerBtn.addEventListener("click", () => {
-        sidebarMenu.classList.add("active");
-        sidebarOverlay.classList.add("active");
+if (sidebarAuthBtn && authModal) {
+    sidebarAuthBtn.addEventListener("click", () => {
+        document.getElementById("sidebarMenu").classList.remove("active");
+        document.getElementById("sidebarOverlay").classList.remove("active");
+        setTimeout(() => {
+            authModal.classList.add("active"); 
+        }, 300); 
     });
-
-    // Закрытие бокового меню
-    const closeSidebar = () => {
-        sidebarMenu.classList.remove("active");
-        sidebarOverlay.classList.remove("active");
-    };
-
-    closeSidebarBtn.addEventListener("click", closeSidebar);
-    sidebarOverlay.addEventListener("click", closeSidebar);
-
-    // Открытие окна авторизации из бокового меню
-    if (sidebarAuthBtn && authModal) {
-        sidebarAuthBtn.addEventListener("click", () => {
-            closeSidebar(); // Прячем меню
-            setTimeout(() => {
-                authModal.classList.add("active"); // Показываем модалку входа
-            }, 300); // Небольшая задержка для красоты
-        });
-    }
-
-    // Закрытие окна авторизации
-    if (closeAuthBtn) {
-        closeAuthBtn.addEventListener("click", () => {
-            authModal.classList.remove("active");
-        });
-    }
 }
+if (closeAuthBtn) {
+    closeAuthBtn.addEventListener("click", () => authModal.classList.remove("active"));
+}
+
 // --- ЛОГИКА ТЕМ ОФОРМЛЕНИЯ С АВТОСОХРАНЕНИЕМ ---
 const menuThemeBtn = document.getElementById("menuTheme");
 const themeModal = document.getElementById("themeModal");
 const closeThemeBtn = document.getElementById("closeThemeBtn");
 const themeCards = document.querySelectorAll(".theme-card");
 
-// 1. ПРИМЕНЯЕМ СОХРАНЕННУЮ ТЕМУ СРАЗУ ПРИ ЗАГРУЗКЕ СКРИПТА
 const savedTheme = localStorage.getItem("appTheme") || "default";
 document.body.classList.remove("theme-light", "theme-lavender");
 if (savedTheme !== "default") {
     document.body.classList.add(`theme-${savedTheme}`);
 }
 
-// Подсвечиваем нужную карточку темы в меню настроек
 themeCards.forEach(card => {
     if (card.dataset.theme === savedTheme) {
         card.classList.add("active");
@@ -687,14 +581,11 @@ themeCards.forEach(card => {
     }
 });
 
-// 2. СЛУШАТЕЛИ КЛИКОВ ПО ТЕМАМ
 if (menuThemeBtn && themeModal) {
     menuThemeBtn.addEventListener("click", (e) => {
         e.preventDefault(); 
-        
         document.getElementById("sidebarMenu").classList.remove("active");
         document.getElementById("sidebarOverlay").classList.remove("active");
-        
         setTimeout(() => {
             themeModal.classList.add("active");
         }, 300);
@@ -710,19 +601,17 @@ if (menuThemeBtn && themeModal) {
             this.classList.add("active");
             
             const selectedTheme = this.dataset.theme;
-            
             document.body.classList.remove("theme-light", "theme-lavender");
             
             if (selectedTheme !== "default") {
                 document.body.classList.add(`theme-${selectedTheme}`);
             }
-            
-            // Запоминаем выбор пользователя в памяти браузера
             localStorage.setItem("appTheme", selectedTheme); 
         });
     });
 }
-// --- ЛОГИКА НИЖНЕЙ НАВИГАЦИИ (П ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ) ---
+
+// --- ЛОГИКА НИЖНЕЙ НАВИГАЦИИ ---
 const navHome = document.getElementById("navHome");
 const navSearch = document.getElementById("navSearch");
 const navLibrary = document.getElementById("navLibrary"); 
@@ -733,40 +622,23 @@ const searchView = document.getElementById("searchView");
 const libraryView = document.getElementById("libraryView");
 const profileView = document.getElementById("profileView");
 
-// Массив всех кнопок и экранов
-const navItems = [navHome, navSearch, navLibrary, navProfile];
+const viewNavItems = [navHome, navSearch, navLibrary, navProfile];
 const appViews = [homeView, searchView, libraryView, profileView];
 
 function switchView(activeNav, activeView) {
     if (!activeNav || !activeView) return;
-
-    navItems.forEach(item => {
-        if (item) item.classList.remove("active");
-    });
-    appViews.forEach(view => {
-        if (view) view.classList.remove("active");
-    });
-
+    viewNavItems.forEach(item => { if (item) item.classList.remove("active"); });
+    appViews.forEach(view => { if (view) view.classList.remove("active"); });
     activeNav.classList.add("active");
     activeView.classList.add("active");
 }
 
-if (navHome && homeView) {
-    navHome.addEventListener("click", () => switchView(navHome, homeView));
-}
+if (navHome && homeView) navHome.addEventListener("click", () => switchView(navHome, homeView));
+if (navSearch && searchView) navSearch.addEventListener("click", () => switchView(navSearch, searchView));
+if (navLibrary && libraryView) navLibrary.addEventListener("click", () => switchView(navLibrary, libraryView));
+if (navProfile && profileView) navProfile.addEventListener("click", () => switchView(navProfile, profileView));
 
-if (navSearch && searchView) {
-    navSearch.addEventListener("click", () => switchView(navSearch, searchView));
-}
-
-if (navLibrary && libraryView) {
-    navLibrary.addEventListener("click", () => switchView(navLibrary, libraryView));
-}
-
-if (navProfile && profileView) {
-    navProfile.addEventListener("click", () => switchView(navProfile, profileView));
-}
-// --- УМНАЯ ЛОГИКА ПОИСКА (ЖАНРЫ + SPOTIFY) ---
+// --- УМНАЯ ЛОГИКА ПОИСКА ---
 const searchInput = document.getElementById("genreSearchInput");
 const clearSearchBtn = document.getElementById("clearSearchBtn");
 const searchResultsContainer = document.getElementById("searchResults");
@@ -774,8 +646,6 @@ const searchResultsContainer = document.getElementById("searchResults");
 let globalSearchTimeout = null;
 
 if (searchInput && clearSearchBtn && searchResultsContainer) {
-    
-    // Очистка поиска по крестику
     clearSearchBtn.addEventListener("click", () => {
         searchInput.value = "";
         searchResultsContainer.innerHTML = "";
@@ -783,8 +653,6 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
 
     searchInput.addEventListener("input", (e) => {
         const query = e.target.value.trim().toLowerCase();
-        
-        // Сбрасываем таймер при каждом нажатии клавиши
         clearTimeout(globalSearchTimeout);
         
         if (query.length < 2) {
@@ -792,31 +660,25 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
             return;
         }
 
-        // Показываем анимацию загрузки
         searchResultsContainer.innerHTML = '<div style="text-align: center; color: #8FDDCB; padding: 20px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
 
-        // Запускаем поиск через 500мс после окончания ввода (Debounce)
         globalSearchTimeout = setTimeout(async () => {
-            searchResultsContainer.innerHTML = ""; // Убираем спиннер перед выдачей
+            searchResultsContainer.innerHTML = ""; 
 
-            // --- 1. ИЩЕМ ПО ЛОКАЛЬНОЙ БАЗЕ ЖАНРОВ (Твоя оригинальная логика) ---
             const filteredGenres = appGenres.filter(g => 
                 g.name.toLowerCase().includes(query) || 
                 g.desc.toLowerCase().includes(query)
-            ).slice(0, 5); // Берем топ-5, чтобы не перегружать экран
+            ).slice(0, 5); 
 
             if (filteredGenres.length > 0) {
-                // Добавляем заголовок секции
                 const genreTitle = document.createElement("h4");
                 genreTitle.style.cssText = "color: rgba(168,159,205,0.6); font-size: 11px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;";
                 genreTitle.innerText = "Жанры";
                 searchResultsContainer.appendChild(genreTitle);
 
-                // Отрисовываем карточки жанров
                 filteredGenres.forEach(genre => {
                     const card = document.createElement("div");
                     card.className = "search-result-card";
-                    // Стилизация для бесшовной интеграции
                     card.style.cssText = "padding: 12px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; border-left: 3px solid #B57EDC; transition: 0.3s; display: flex; justify-content: space-between; align-items: center;";
                     
                     card.innerHTML = `
@@ -827,16 +689,15 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                         <i class="fa-solid fa-chevron-right search-arrow" style="color: #8FDDCB;"></i>
                     `;
                     
-                    // Твой оригинальный обработчик клика со всеми проверками!
                     card.addEventListener("click", () => {
                         const genreModal = document.getElementById("genreModal");
                         const modalTitle = document.getElementById("modalGenreTitle");
                         const modalDesc = document.getElementById("genreDescription");
                         
                         if (genreModal && modalTitle && modalDesc) {
+                            history.pushState({ modal: 'genre' }, ''); // Запись в историю
                             modalTitle.textContent = genre.name;
                             modalDesc.textContent = genre.desc;
-
                             currentModalGenre = genre; 
                             
                             if (typeof modalFavBtn !== 'undefined' && modalFavBtn) {
@@ -849,7 +710,6 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                                     modalFavBtn.classList.replace("fa-solid", "fa-regular");
                                 }
                             }
-
                             renderTracksInModal(genre.name);
                             genreModal.classList.add("active");
                         }
@@ -859,12 +719,10 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                 });
             }
 
-// --- 2. ИЩЕМ АРТИСТОВ В БАЗЕ (ЧЕРЕЗ VERCEL) ---
             try {
                 const res = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 
-                // Если сервер вернул имя артиста без ошибок
                 if (!data.error && data.name) {
                     const artistTitle = document.createElement("h4");
                     const marginTop = filteredGenres.length > 0 ? "20px" : "0px";
@@ -872,7 +730,7 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                     artistTitle.innerText = "Артисты";
                     searchResultsContainer.appendChild(artistTitle);
 
-                    const img = data.avatar || ''; // Берем фото от Deezer
+                    const img = data.avatar || ''; 
                     const artistCard = document.createElement("div");
                     artistCard.className = "artist-search-card";
                     artistCard.style.cssText = "display: flex; align-items: center; padding: 10px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; cursor: pointer; transition: 0.3s; border: 1px solid transparent;";
@@ -886,7 +744,6 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                     `;
 
                     artistCard.addEventListener("click", () => {
-                        // Скрываем результаты, но НЕ стираем введенный текст
                         searchResultsContainer.innerHTML = "";
                         openArtistProfile(data.name);
                     });
@@ -897,7 +754,6 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                 console.error("Ошибка поиска артиста:", error);
             }
 
-            // --- 3. ЕСЛИ НИЧЕГО НЕ НАЙДЕНО ВООБЩЕ ---
             if (searchResultsContainer.innerHTML === "") {
                 searchResultsContainer.innerHTML = '<div style="text-align: center; color: rgba(168,159,205,0.5); padding: 20px; font-size: 14px;">Ничего не найдено</div>';
             }
@@ -906,18 +762,16 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
     });
 }
 
-    // Управление отображением крестика очистки
-    searchInput.addEventListener("input", (e) => {
-        clearSearchBtn.style.display = e.target.value.length > 0 ? "block" : "none";
-    });
+searchInput.addEventListener("input", (e) => {
+    clearSearchBtn.style.display = e.target.value.length > 0 ? "block" : "none";
+});
 
-    // Очищаем поле по клику на крестик
-    clearSearchBtn.addEventListener("click", () => {
-        searchInput.value = "";
-        clearSearchBtn.style.display = "none";
-        searchResultsContainer.innerHTML = ""; // Убираем результаты
-        searchInput.focus();
-    });
+clearSearchBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    clearSearchBtn.style.display = "none";
+    searchResultsContainer.innerHTML = ""; 
+    searchInput.focus();
+});
 
 // --- ЛОГИКА ПРОФИЛЯ И FIREBASE AUTH ---
 const profileNameDisplay = document.getElementById("profileNameDisplay");
@@ -929,22 +783,18 @@ const logoutBtn = document.getElementById("logoutBtn");
 const loginFromProfileBtn = document.getElementById("loginFromProfileBtn");
 const openProfileSettingsBtn = document.getElementById("openProfileSettingsBtn");
 
-// Функция мгновенного обновления интерфейса
 const navProfileIcon = document.getElementById("navProfileIcon");
 const navProfileAvatar = document.getElementById("navProfileAvatar");
 
 function updateProfileUI(user) {
-    // Находим кнопку авторизации из бокового меню напрямую
     const menuAuthBtn = document.getElementById("sidebarAuthBtn");
 
     if (user) {
         if (profileNameDisplay) profileNameDisplay.textContent = user.displayName || "Пользователь";
         
-        // Читаем кастомный статус из памяти
         const savedBio = localStorage.getItem(`userBio_${user.uid}`);
         if (profileEmailDisplay) profileEmailDisplay.textContent = savedBio || user.email || "Музыкальный исследователь";
         
-        // Проверяем, есть ли обрезанная аватарка в памяти, иначе берем из Google
         const customAvatar = localStorage.getItem(`userAvatar_${user.uid}`);
         const finalAvatarUrl = customAvatar || user.photoURL;
         
@@ -952,7 +802,6 @@ function updateProfileUI(user) {
             profileAvatar.style.backgroundImage = `url('${finalAvatarUrl}')`;
             if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "none";
             if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
-            // Меняем иконку в нижней панели на аватарку
             if (navProfileAvatar && navProfileIcon) {
                 navProfileAvatar.style.backgroundImage = `url('${finalAvatarUrl}')`;
                 navProfileAvatar.style.display = "block";
@@ -960,14 +809,10 @@ function updateProfileUI(user) {
             }
         }
 
-        // Логика кнопок профиля
         if (logoutBtn) logoutBtn.style.display = "flex";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "none";
         if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "block"; 
-        
-        // ---> СКРЫВАЕМ КНОПКУ В БОКОВОМ МЕНЮ <---
         if (menuAuthBtn) menuAuthBtn.style.display = "none";
-
     } else {
         if (profileNameDisplay) profileNameDisplay.textContent = "Гость";
         if (profileEmailDisplay) profileEmailDisplay.textContent = "Неавторизованный пользователь";
@@ -975,30 +820,24 @@ function updateProfileUI(user) {
         if (profileAvatar) profileAvatar.style.backgroundImage = "none";
         if (avatarPlaceholderIcon) avatarPlaceholderIcon.style.display = "block";
         if (avatarEditOverlay) avatarEditOverlay.style.display = "none";
-        // Возвращаем стандартную иконку в нижнюю панель
         if (navProfileAvatar && navProfileIcon) {
             navProfileAvatar.style.display = "none";
             navProfileIcon.style.display = "block";
         }
 
-        // Логика кнопок профиля
         if (logoutBtn) logoutBtn.style.display = "none";
         if (loginFromProfileBtn) loginFromProfileBtn.style.display = "flex";
         if (openProfileSettingsBtn) openProfileSettingsBtn.style.display = "none"; 
-        
-        // ---> ВОЗВРАЩАЕМ КНОПКУ В БОКОВОЕ МЕНЮ <---
         if (menuAuthBtn) menuAuthBtn.style.display = "flex"; 
     }
 }
 
-// 1. АВТОМАТИЧЕСКИЙ РАДАР СОСТОЯНИЯ (Слушает Firebase 24/7)
 if (typeof firebase !== 'undefined' && firebase.auth) {
     firebase.auth().onAuthStateChanged((user) => {
         updateProfileUI(user);
     });
 }
 
-// 2. ЛОГИКА КНОПОК "ВЫЙТИ" И "ВОЙТИ"
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
         if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -1013,9 +852,7 @@ if (loginFromProfileBtn) {
     });
 }
 
-// ==========================================
-// 3. ЛОГИКА НАСТРОЕК ПРОФИЛЯ И ОБРЕЗКИ ФОТО
-// ==========================================
+// --- ЛОГИКА НАСТРОЕК ПРОФИЛЯ И ОБРЕЗКИ ФОТО ---
 const profileSettingsModal = document.getElementById("profileSettingsModal");
 const closeProfileSettingsBtn = document.getElementById("closeProfileSettingsBtn");
 const settingsNameInput = document.getElementById("settingsNameInput");
@@ -1032,9 +869,8 @@ const cancelCropBtn = document.getElementById("cancelCropBtn");
 const applyCropBtn = document.getElementById("applyCropBtn");
 
 let cropper = null;
-let tempCroppedBase64 = null; // Временное хранение до нажатия "Сохранить"
+let tempCroppedBase64 = null; 
 
-// Открытие окна настроек (привяжем и к шестеренке, и к самой аватарке профиля для удобства)
 const openSettings = () => {
     const user = firebase.auth().currentUser;
     if (user && profileSettingsModal) {
@@ -1047,14 +883,13 @@ const openSettings = () => {
             settingsAvatarPreview.innerHTML = ""; 
         }
         
-        tempCroppedBase64 = null; // Сбрасываем временное фото
+        tempCroppedBase64 = null; 
         profileSettingsModal.classList.add("active");
     }
 };
 
 if (openProfileSettingsBtn) openProfileSettingsBtn.addEventListener("click", openSettings);
 if (profileAvatar) profileAvatar.addEventListener("click", () => {
-    // Открываем настройки по клику на аватар, только если авторизован
     if (firebase.auth().currentUser) openSettings();
 });
 
@@ -1062,7 +897,6 @@ if (closeProfileSettingsBtn) {
     closeProfileSettingsBtn.addEventListener("click", () => profileSettingsModal.classList.remove("active"));
 }
 
-// Выбор фото из галереи
 const triggerFileInput = () => settingsAvatarInput.click();
 if (settingsAvatarPreview) settingsAvatarPreview.addEventListener("click", triggerFileInput);
 if (settingsAvatarText) settingsAvatarText.addEventListener("click", triggerFileInput);
@@ -1094,7 +928,6 @@ if (settingsAvatarInput) {
     });
 }
 
-// Отмена обрезки
 if (cancelCropBtn) {
     cancelCropBtn.addEventListener("click", () => {
         cropModal.classList.remove("active");
@@ -1102,32 +935,23 @@ if (cancelCropBtn) {
     });
 }
 
-// Применение обрезки (Идеально круглый кроп)
 if (applyCropBtn) {
     applyCropBtn.addEventListener("click", () => {
         if (cropper) {
-            // 1. Получаем базовый квадратный холст от Cropper
             const squareCanvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
-            
-            // 2. Создаем свой виртуальный холст для физического вырезания круга
             const roundCanvas = document.createElement('canvas');
             roundCanvas.width = 300;
             roundCanvas.height = 300;
             const ctx = roundCanvas.getContext('2d');
             
-            // 3. Создаем круглую маску
             ctx.beginPath();
             ctx.arc(150, 150, 150, 0, 2 * Math.PI);
             ctx.closePath();
-            ctx.clip(); // Всё, что за пределами этого круга, будет отсечено
+            ctx.clip(); 
             
-            // 4. Вставляем наше фото ровно в этот круг
             ctx.drawImage(squareCanvas, 0, 0, 300, 300);
-            
-            // 5. ВАЖНО: Сохраняем в PNG! (JPEG сделает прозрачные углы черными)
             tempCroppedBase64 = roundCanvas.toDataURL("image/png");
             
-            // Показываем результат в окне настроек
             settingsAvatarPreview.style.backgroundImage = `url('${tempCroppedBase64}')`;
             settingsAvatarPreview.innerHTML = ""; 
             
@@ -1137,7 +961,6 @@ if (applyCropBtn) {
     });
 }
 
-// Сохранение всех настроек
 if (saveProfileSettingsBtn) {
     saveProfileSettingsBtn.addEventListener("click", () => {
         const user = firebase.auth().currentUser;
@@ -1150,16 +973,14 @@ if (saveProfileSettingsBtn) {
         saveProfileSettingsBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Сохранение...`;
         saveProfileSettingsBtn.style.pointerEvents = "none";
 
-        // Сохраняем статус и фото в память по UID
         if (newBio) localStorage.setItem(`userBio_${user.uid}`, newBio);
         if (tempCroppedBase64) localStorage.setItem(`userAvatar_${user.uid}`, tempCroppedBase64);
 
-        // Обновляем имя в самом Firebase
         user.updateProfile({
             displayName: newName || user.displayName
         }).then(() => {
             profileSettingsModal.classList.remove("active");
-            updateProfileUI(user); // Перерисовываем профиль
+            updateProfileUI(user); 
             
             saveProfileSettingsBtn.innerText = originalBtnText;
             saveProfileSettingsBtn.style.pointerEvents = "auto";
@@ -1170,23 +991,21 @@ if (saveProfileSettingsBtn) {
         });
     });
 }
-// --- ЛОГИКА ИЗБРАННОГО (FAVORITES) ---
+
+// --- ЛОГИКА ИЗБРАННОГО ---
 const favoritesList = document.getElementById("favoritesList");
 const emptyLibrary = document.getElementById("emptyLibrary");
 const statsFavorites = document.getElementById("statsFavorites");
 const modalFavBtn = document.getElementById("modalFavBtn");
 
-// Загружаем из памяти или создаем пустой массив
 let favoriteGenres = JSON.parse(localStorage.getItem("favoriteGenres")) || [];
-let currentModalGenre = null; // Запоминает, какой жанр сейчас открыт
+let currentModalGenre = null; 
 
 function updateFavorites() {
-    // 1. Обновляем счетчик в профиле
     if (statsFavorites) {
         statsFavorites.textContent = favoriteGenres.length;
     }
 
-    // 2. Отрисовываем список Избранного
     if (!favoritesList) return;
     favoritesList.innerHTML = "";
     
@@ -1206,14 +1025,12 @@ function updateFavorites() {
                 </button>
             `;
             
-            // Удаление жанра прямо из списка
             card.querySelector(".remove-fav-btn").addEventListener("click", (e) => {
                 e.stopPropagation();
                 favoriteGenres = favoriteGenres.filter(g => g.name !== genre.name);
                 localStorage.setItem("favoriteGenres", JSON.stringify(favoriteGenres));
                 updateFavorites();
                 
-                // Если удаленный жанр сейчас открыт в модалке, сбрасываем сердце
                 if (currentModalGenre && currentModalGenre.name === genre.name && modalFavBtn) {
                     modalFavBtn.classList.remove("active");
                     modalFavBtn.classList.replace("fa-solid", "fa-regular");
@@ -1225,7 +1042,6 @@ function updateFavorites() {
     }
 }
 
-// Клик по сердцу в модалке
 if (modalFavBtn) {
     modalFavBtn.addEventListener("click", () => {
         if (!currentModalGenre) return;
@@ -1233,12 +1049,10 @@ if (modalFavBtn) {
         const index = favoriteGenres.findIndex(g => g.name === currentModalGenre.name);
         
         if (index === -1) {
-            // Если нет в избранном — добавляем
             favoriteGenres.push(currentModalGenre);
             modalFavBtn.classList.add("active");
             modalFavBtn.classList.replace("fa-regular", "fa-solid");
         } else {
-            // Если есть — удаляем
             favoriteGenres.splice(index, 1);
             modalFavBtn.classList.remove("active");
             modalFavBtn.classList.replace("fa-solid", "fa-regular");
@@ -1249,70 +1063,43 @@ if (modalFavBtn) {
     });
 }
 
-// Первичная отрисовка при запуске
 updateFavorites();
-// --- ЛОГИКА ЖАНРА ДНЯ ---
+
+// --- ЖАНР ДНЯ ---
 const dailyGenreElement = document.getElementById("dailyGenre");
 
-if (dailyGenreElement && typeof appGenres !== 'undefined') {
+if (dailyGenreElement) {
+    // Эта функция вызывается один раз при успешной загрузке базы
     function setDailyGenre(genreName) {
-        // Получаем текущую дату в формате YYYY-MM-DD (например, 2026-06-19)
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Проверяем кэш браузера
-        const savedDate = localStorage.getItem("dailyGenreDate");
-        const savedGenreName = localStorage.getItem("dailyGenreName");
-
-        let currentDaily = null;
-
-        // Если дата совпадает и жанр сохранен, берем его из памяти
-        if (savedDate === today && savedGenreName) {
-            currentDaily = appGenres.find(g => g.name === savedGenreName);
-        }
-
-        // Если начался новый день (или зашли впервые), генерируем новый
+        let currentDaily = appGenres.find(g => g.name === genreName);
         if (!currentDaily) {
-            const randomIndex = Math.floor(Math.random() * appGenres.length);
-            currentDaily = appGenres[randomIndex];
-            
-            // Сохраняем в память
-            localStorage.setItem("dailyGenreDate", today);
-            localStorage.setItem("dailyGenreName", currentDaily.name);
+            currentDaily = { name: genreName, desc: `Погрузитесь в атмосферу жанра ${genreName}.` };
         }
 
-        // Выводим название на экран
         dailyGenreElement.textContent = currentDaily.name;
         
-        // Делаем элемент кликабельным и настраиваем мягкие цвета
         dailyGenreElement.style.cursor = "pointer";
-        dailyGenreElement.style.color = "#E6E6FA"; /* Мягкий светло-лавандовый текст */
+        dailyGenreElement.style.color = "#E6E6FA"; 
         dailyGenreElement.style.textDecoration = "underline";
-        dailyGenreElement.style.textDecorationColor = "rgba(152, 255, 152, 0.4)"; /* Полупрозрачная мятная линия */
+        dailyGenreElement.style.textDecorationColor = "rgba(152, 255, 152, 0.4)"; 
         dailyGenreElement.style.textUnderlineOffset = "4px";
         dailyGenreElement.style.transition = "color 0.3s ease";
         
-        // Легкое свечение при наведении
         dailyGenreElement.addEventListener("mouseenter", () => dailyGenreElement.style.color = "#ffffff");
         dailyGenreElement.addEventListener("mouseleave", () => dailyGenreElement.style.color = "#E6E6FA");
         
-        // При клике на Жанр дня открываем наше модальное окно
         dailyGenreElement.addEventListener("click", () => {
             const genreModal = document.getElementById("genreModal");
             const modalTitle = document.getElementById("modalGenreTitle");
             const modalDesc = document.getElementById("genreDescription");
-            const modalFavBtn = document.getElementById("modalFavBtn");
             
             if (genreModal && modalTitle && modalDesc) {
-                // Подставляем данные
+                history.pushState({ modal: 'genre' }, ''); // Запись в историю
                 modalTitle.textContent = currentDaily.name;
                 modalDesc.textContent = currentDaily.desc;
                 
-                // Передаем жанр в систему Избранного
-                if (typeof currentModalGenre !== 'undefined') {
-                    currentModalGenre = currentDaily;
-                }
+                currentModalGenre = currentDaily;
                 
-                // Проверяем, есть ли он уже в Избранном
                 if (modalFavBtn && typeof favoriteGenres !== 'undefined') {
                     const isFav = favoriteGenres.some(g => g.name === currentDaily.name);
                     if (isFav) {
@@ -1324,35 +1111,25 @@ if (dailyGenreElement && typeof appGenres !== 'undefined') {
                     }
                 }
                 
-                // ---> ВЫЗЫВАЕМ НАШУ НОВУЮ ФУНКЦИЮ ЗАГРУЗКИ ТРЕКОВ <---
                 renderTracksInModal(currentDaily.name);
-
-                // Показываем окно
                 genreModal.classList.add("active");
             }
         });
     }
+}
 
-    // Запускаем проверку при загрузке страницы
-    // setDailyGenre();
-}// --- ЛОГИКА АВТОРИЗАЦИИ ЧЕРЕЗ GOOGLE (FIREBASE) ---
+// --- ЛОГИКА АВТОРИЗАЦИИ ЧЕРЕЗ GOOGLE ---
 const googleAuthBtn = document.getElementById("googleAuthBtn");
 
 if (googleAuthBtn) {
     googleAuthBtn.addEventListener("click", () => {
         if (typeof firebase !== 'undefined' && firebase.auth) {
             const provider = new firebase.auth.GoogleAuthProvider();
-            
-            // Определяем, сидит ли юзер с телефона
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             
             if (isMobile) {
-                // ДЛЯ ТЕЛЕФОНОВ И TELEGRAM: Используем Redirect
-                // Гугл перекинет юзера на страницу входа, а потом вернет обратно к нам.
-                // Наша функция-радар (onAuthStateChanged) сама поймает его после возвращения!
                 firebase.auth().signInWithRedirect(provider);
             } else {
-                // ДЛЯ ПК: Оставляем красивое всплывающее окно
                 firebase.auth().signInWithPopup(provider)
                     .then((result) => {
                         console.log("✅ Вход выполнен!");
@@ -1363,25 +1140,19 @@ if (googleAuthBtn) {
                         console.error("❌ Ошибка при входе:", error.message);
                     });
             }
-        } else {
-            alert("Запрос на авторизацию Google отправлен (режим разработки)!");
-            document.getElementById("authModal").classList.remove("active");
         }
     });
 }
-// ==========================================
-// ЛОГИКА АВТОРИЗАЦИИ EMAIL/PASSWORD (УМНАЯ КНОПКА "ПРОДОЛЖИТЬ")
-// ==========================================
+
+// --- ЛОГИКА АВТОРИЗАЦИИ EMAIL/PASSWORD ---
 const authEmailInput = document.getElementById("emailInput");
 const authPasswordInput = document.getElementById("passwordInput");
 const authContinueBtn = document.querySelector(".auth-btn");
 
-// Динамически создаем элемент для вывода ошибок, чтобы не ломать твой HTML
 const errorMsgDisplay = document.createElement("div");
 errorMsgDisplay.style.cssText = "color: #ff6b6b; font-size: 12px; margin-bottom: 15px; text-align: center; display: none;";
 
 if (authContinueBtn) {
-    // Вставляем блок ошибки прямо перед кнопкой "Продолжить"
     authContinueBtn.parentNode.insertBefore(errorMsgDisplay, authContinueBtn);
 
     authContinueBtn.addEventListener("click", () => {
@@ -1396,23 +1167,19 @@ if (authContinueBtn) {
         
         errorMsgDisplay.style.display = "none";
         const originalBtnText = authContinueBtn.innerText;
-        authContinueBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; // Анимация загрузки
+        authContinueBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; 
 
-        // ШАГ 1: Пытаемся авторизовать пользователя
         firebase.auth().signInWithEmailAndPassword(email, password)
             .then(() => {
-                // Успешный вход
                 document.getElementById("authModal").classList.remove("active");
                 authEmailInput.value = ""; 
                 authPasswordInput.value = "";
                 authContinueBtn.innerText = originalBtnText;
             })
             .catch((error) => {
-                // ШАГ 2: Если аккаунта нет - автоматически создаем его
                 if (error.code === 'auth/user-not-found') {
                     firebase.auth().createUserWithEmailAndPassword(email, password)
                         .then(() => {
-                            // Успешная регистрация
                             document.getElementById("authModal").classList.remove("active");
                             authEmailInput.value = ""; 
                             authPasswordInput.value = "";
@@ -1426,10 +1193,8 @@ if (authContinueBtn) {
                             else errorMsgDisplay.innerText = "Ошибка регистрации: " + regError.message;
                         });
                 } else {
-                    // Обработка других ошибок входа (неверный пароль и т.д.)
                     authContinueBtn.innerText = originalBtnText;
                     errorMsgDisplay.style.display = "block";
-                    
                     if (error.code === 'auth/wrong-password') errorMsgDisplay.innerText = "Неверный пароль.";
                     else if (error.code === 'auth/invalid-email') errorMsgDisplay.innerText = "Некорректный email адрес.";
                     else if (error.code === 'auth/user-disabled') errorMsgDisplay.innerText = "Аккаунт заблокирован.";
@@ -1438,34 +1203,25 @@ if (authContinueBtn) {
             });
     });
 }
-// ==========================================
-// ЛОГИКА КНОПОК ПОДСКАЗКИ ДЛЯ НЕЗАРЕГИСТРИРОВАННЫХ
-// ==========================================
+
+// --- ЛОГИКА КНОПОК ПОДСКАЗКИ ДЛЯ НЕЗАРЕГИСТРИРОВАННЫХ ---
 const regPromptModal = document.getElementById("registerPromptModal");
 const closeRegPromptBtn = document.getElementById("closeRegPromptBtn");
 const goFromPromptToAuthBtn = document.getElementById("goFromPromptToAuthBtn");
 
-// Обработка крестика (закрыть подсказку)
 if (closeRegPromptBtn && regPromptModal) {
-    closeRegPromptBtn.addEventListener("click", () => {
-        regPromptModal.classList.remove("active");
+    closeRegPromptBtn.addEventListener("click", () => regPromptModal.classList.remove("active"));
+}
+
+if (goFromPromptToAuthBtn && regPromptModal) {
+    goFromPromptToAuthBtn.addEventListener("click", () => {
+        regPromptModal.classList.remove("active"); 
+        const authModal = document.getElementById("authModal");
+        if (authModal) authModal.classList.add("active"); 
     });
 }
 
-// Обработка кнопки "Войти в аккаунт" внутри подсказки
-if (goFromPromptToAuthBtn && regPromptModal) {
-    goFromPromptToAuthBtn.addEventListener("click", () => {
-        regPromptModal.classList.remove("active"); // Скрываем подсказку
-        
-        const authModal = document.getElementById("authModal");
-        if (authModal) {
-            authModal.classList.add("active"); // Вызываем основное меню авторизации
-        }
-    });
-}
-// ==========================================
-// ЛОГИКА ОКОН БОКОВОГО МЕНЮ И ИСТОРИИ
-// ==========================================
+// --- ЛОГИКА ОКОН БОКОВОГО МЕНЮ И ИСТОРИИ ---
 const historyModal = document.getElementById("historyModal");
 const aboutModal = document.getElementById("aboutModal");
 const supportModal = document.getElementById("supportModal");
@@ -1474,7 +1230,6 @@ const menuHistoryBtn = document.getElementById("menuHistory");
 const menuAboutBtn = document.getElementById("menuAbout");
 const menuSupportBtn = document.getElementById("menuSupport");
 
-// Открытие окон с автоматическим скрытием левого меню
 function openSidebarModal(modalElement) {
     const sidebarMenu = document.getElementById("sidebarMenu");
     const sidebarOverlay = document.getElementById("sidebarOverlay");
@@ -1490,12 +1245,10 @@ if (menuHistoryBtn) menuHistoryBtn.addEventListener("click", (e) => { e.preventD
 if (menuAboutBtn) menuAboutBtn.addEventListener("click", (e) => { e.preventDefault(); openSidebarModal(aboutModal); });
 if (menuSupportBtn) menuSupportBtn.addEventListener("click", (e) => { e.preventDefault(); openSidebarModal(supportModal); });
 
-// Закрытие окон по крестикам
 document.getElementById("closeHistoryBtn")?.addEventListener("click", () => historyModal.classList.remove("active"));
 document.getElementById("closeAboutBtn")?.addEventListener("click", () => aboutModal.classList.remove("active"));
 document.getElementById("closeSupportBtn")?.addEventListener("click", () => supportModal.classList.remove("active"));
 
-// --- СИСТЕМА ИСТОРИИ ---
 const historyListContainer = document.getElementById("historyListContainer");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 let spinHistory = JSON.parse(localStorage.getItem("spinHistory")) || [];
@@ -1512,10 +1265,9 @@ function updateHistoryUI() {
 
     if (clearHistoryBtn) clearHistoryBtn.style.display = "block";
 
-    // Выводим жанры с конца (самые свежие сверху)
     [...spinHistory].reverse().forEach(genreName => {
         const item = document.createElement("div");
-        item.className = "search-result-card"; // Используем стиль карточек из поиска
+        item.className = "search-result-card"; 
         item.style.marginBottom = "10px";
         
         item.innerHTML = `
@@ -1525,7 +1277,6 @@ function updateHistoryUI() {
             <i class="fa-solid fa-rotate-right search-arrow" style="color: #8FDDCB; pointer-events: none;"></i>
         `;
 
-        // При клике на жанр из истории - открываем его окно с треками
         item.addEventListener("click", () => {
             const genreModal = document.getElementById("genreModal");
             const modalTitle = document.getElementById("modalGenreTitle");
@@ -1535,6 +1286,7 @@ function updateHistoryUI() {
             const genreInfo = globalDatabase[dbKey];
 
             if (genreModal && modalTitle && modalDesc) {
+                history.pushState({ modal: 'genre' }, ''); // Запись в историю
                 modalTitle.innerText = genreName;
                 if (genreInfo) {
                     modalDesc.innerText = genreInfo.description;
@@ -1542,9 +1294,8 @@ function updateHistoryUI() {
                     modalDesc.innerHTML = `Погрузитесь в атмосферу <b>${genreName}</b>.<br><br><span style="font-size: 0.9em; opacity: 0.7;">Информация скоро появится.</span>`;
                 }
 
-                currentModalGenre = { name: genreName }; // Запоминаем для системы Избранного
+                currentModalGenre = { name: genreName }; 
                 
-                // Проверяем статус лайка
                 if (typeof modalFavBtn !== 'undefined' && modalFavBtn && typeof favoriteGenres !== 'undefined') {
                     const isFav = favoriteGenres.some(g => g.name === genreName);
                     if (isFav) {
@@ -1558,8 +1309,8 @@ function updateHistoryUI() {
 
                 renderTracksInModal(genreName);
                 
-                historyModal.classList.remove("active"); // Прячем историю
-                setTimeout(() => genreModal.classList.add("active"), 300); // Показываем жанр
+                historyModal.classList.remove("active"); 
+                setTimeout(() => genreModal.classList.add("active"), 300); 
             }
         });
 
@@ -1575,31 +1326,16 @@ if (clearHistoryBtn) {
     });
 }
 
-updateHistoryUI(); // Отрисовываем при старте
+updateHistoryUI(); 
 
-
+// --- ЛОГИКА ПРОФИЛЕЙ АРТИСТОВ И ИХ ИСТОРИИ ---
 const artistModal = document.getElementById("artistModal");
 const closeArtistBtn = document.getElementById("closeArtistBtn");
 
-if (closeArtistBtn && artistModal) {
-    closeArtistBtn.addEventListener("click", () => {
-        artistModal.classList.remove("active");
-        // Останавливаем только если играет трек именно из модалки артиста
-        if (typeof currentAudio !== 'undefined' && currentAudio && currentAudio.trackId && currentAudio.trackId.startsWith('artist-track')) {
-            currentAudio.pause();
-            if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
-                currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-            }
-        }
-    });
-}
-
-// --- ЛОГИКА ИСТОРИИ ПРОФИЛЕЙ АРТИСТОВ ---
 let artistHistoryStack = [];
 let currentArtistInModal = null;
 
 if (closeArtistBtn && artistModal) {
-    // Перезаписываем логику закрытия крестиком (добавляем очистку истории)
     const oldCloseClone = closeArtistBtn.cloneNode(true);
     closeArtistBtn.parentNode.replaceChild(oldCloseClone, closeArtistBtn);
     oldCloseClone.addEventListener("click", () => {
@@ -1620,26 +1356,23 @@ if (artistBackBtn) {
     artistBackBtn.addEventListener("click", () => {
         if (artistHistoryStack.length > 0) {
             const prevArtist = artistHistoryStack.pop();
-            openArtistProfile(prevArtist, true); // true = возвращаемся назад
+            openArtistProfile(prevArtist, true); 
         }
     });
 }
-// Главная функция генерации карточки (Last.fm + iTunes + Deezer)
-// Главная функция генерации карточки (Last.fm + iTunes + Deezer)
+
 async function openArtistProfile(artistName, isBack = false) {
     if (!artistModal) return;
 
-    // ОБМАНЫВАЕМ БРАУЗЕР: Делаем вид, что открылась новая страница
     if (!isBack) {
         history.pushState({ modal: 'artist', name: artistName }, '');
     }
 
-    // Управление историей для внутренней кнопки "Назад"
     if (!isBack && currentArtistInModal && currentArtistInModal !== artistName) {
         artistHistoryStack.push(currentArtistInModal);
     }
     if (!isBack && !currentArtistInModal) {
-        artistHistoryStack = []; // Сброс, если открыли с нуля
+        artistHistoryStack = []; 
     }
     currentArtistInModal = artistName;
 
@@ -1648,7 +1381,6 @@ async function openArtistProfile(artistName, isBack = false) {
         backBtn.style.display = artistHistoryStack.length > 0 ? "block" : "none";
     }
     
-    // Сбрасываем старые данные перед новой загрузкой
     document.getElementById("artistNameDisplay").innerText = "Загрузка...";
     const followersDisplay = document.getElementById("artistFollowers");
     if (followersDisplay) followersDisplay.innerHTML = '<i class="fa-solid fa-users"></i> Загрузка...';
@@ -1659,27 +1391,21 @@ async function openArtistProfile(artistName, isBack = false) {
     artistModal.classList.add("active");
 
     try {
-        // Обращаемся к нашему обновленному серверу Vercel
         const response = await fetch(`https://belyash-coder-github-io.vercel.app/search-artist?name=${encodeURIComponent(artistName)}`);
         const data = await response.json();
 
-        // Проверяем ошибку 
         if (data.error) {
             document.getElementById("artistNameDisplay").innerText = "Не найдено";
             if (followersDisplay) followersDisplay.innerHTML = "";
             return;
         }
 
-        // Отрисовка имени артиста
         document.getElementById("artistNameDisplay").innerText = data.name;
 
-        // Вставка аватара артиста
-        // Вставка полноэкранного фото на фон шапки
         if (data.avatar && headerEl) {
             headerEl.style.backgroundImage = `url('${data.avatar}')`;
         }
 
-        // Вставка красиво отформатированного счетчика фанатов
         if (followersDisplay) {
             if (data.fans && data.fans > 0) {
                 const formattedFans = data.fans.toLocaleString('ru-RU');
@@ -1689,13 +1415,11 @@ async function openArtistProfile(artistName, isBack = false) {
             }
         }
 
-       // Отрисовка треков (из iTunes) с логикой плеера
         const tracksContainer = document.getElementById("artistTopTracksContainer");
-        tracksContainer.innerHTML = ""; // Очищаем контейнер
+        tracksContainer.innerHTML = ""; 
 
         if (data.tracks && data.tracks.length > 0) {
             data.tracks.forEach((track, index) => {
-                // Создаем 100% уникальный ID для каждого трека каждого артиста
                 const safeArtistId = data.name.replace(/[^a-zA-Z0-9]/g, '');
                 const trackId = `artist-track-${safeArtistId}-${index}`;
                 
@@ -1720,7 +1444,6 @@ async function openArtistProfile(artistName, isBack = false) {
                 
                 tracksContainer.appendChild(card);
 
-                // Логика воспроизведения
                 card.addEventListener("click", function(e) {
                     const playBtn = document.getElementById(`btn-${trackId}`);
                     const audioUrl = playBtn.dataset.audioUrl;
@@ -1729,7 +1452,6 @@ async function openArtistProfile(artistName, isBack = false) {
 
                     if (!audioUrl) return; 
 
-                    // 1. Клик по сикбару (перемотка)
                     if (e.target.closest('.seek-bar-container')) {
                         if (currentAudio && currentAudio.trackId === trackId) {
                             const rect = seekBarContainer.getBoundingClientRect();
@@ -1740,7 +1462,6 @@ async function openArtistProfile(artistName, isBack = false) {
                         return;
                     }
 
-                   // 2. Клик строго по кнопке (Play / Pause)
                     if (e.target.closest('.play-btn')) {
                         if (currentAudio && currentAudio.trackId === trackId) {
                             if (!currentAudio.paused) {
@@ -1753,7 +1474,6 @@ async function openArtistProfile(artistName, isBack = false) {
                             return;
                         }
                         
-                        // Выключаем игравший до этого трек и сбрасываем его ползунок
                         if (currentAudio) {
                             currentAudio.pause();
                             if (currentPlayBtn) currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
@@ -1761,7 +1481,6 @@ async function openArtistProfile(artistName, isBack = false) {
                             if (prevProgress) prevProgress.style.width = '0%';
                         }
                         
-                        // Запускаем новый
                         currentAudio = new Audio(audioUrl);
                         currentAudio.trackId = trackId;
                         currentPlayBtn = playBtn;
@@ -1769,7 +1488,6 @@ async function openArtistProfile(artistName, isBack = false) {
                         currentAudio.play();
                         playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
                         
-                        // Движение сикбара
                         currentAudio.addEventListener('timeupdate', () => {
                             if (currentAudio.duration) {
                                 const percent = (currentAudio.currentTime / currentAudio.duration) * 100;
@@ -1777,7 +1495,6 @@ async function openArtistProfile(artistName, isBack = false) {
                             }
                         });
 
-                        // Когда трек закончился
                         currentAudio.onended = () => { 
                             playBtn.innerHTML = '<i class="fa-solid fa-play"></i>'; 
                             if (progressBar) progressBar.style.width = '0%'; 
@@ -1789,12 +1506,9 @@ async function openArtistProfile(artistName, isBack = false) {
             tracksContainer.innerHTML = '<div style="color: rgba(168,159,205,0.5); font-size: 13px; text-align: center;">Треки не найдены</div>';
         }
 
-        // Отрисовка похожих артистов с фотографиями
         if (data.similar && data.similar.length > 0) {
             document.getElementById("relatedArtistsContainer").innerHTML = data.similar.map(artistObj => {
                 const safeName = artistObj.name.replace(/'/g, "\\'");
-                
-                // Если сервер нашел фото - вставляем его, если нет - оставляем заглушку с нотой
                 const photoHtml = artistObj.picture 
                     ? `<div class="related-artist-photo" style="background-image: url('${artistObj.picture}'); background-size: cover; background-position: center; border: 1px solid rgba(143, 221, 203, 0.3);"></div>`
                     : `<div class="related-artist-photo" style="background-color: #140f1c; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(143, 221, 203, 0.3);"><i class="fa-solid fa-music" style="color: rgba(143, 221, 203, 0.5);"></i></div>`;
@@ -1816,26 +1530,35 @@ async function openArtistProfile(artistName, isBack = false) {
         if (followersDisplay) followersDisplay.innerHTML = "";
     }
 }
+
 // --- ОБРАБОТЧИК СИСТЕМНОЙ КНОПКИ "НАЗАД" НА СМАРТФОНАХ ---
 window.addEventListener('popstate', (event) => {
-    // Проверяем, открыто ли сейчас окно артиста
+    // 1. Проверяем окно артиста
     if (typeof artistModal !== 'undefined' && artistModal && artistModal.classList.contains('active')) {
-        
-        // Если внутри профиля мы переходили по "Похожим артистам" - возвращаемся на шаг назад
         if (typeof artistHistoryStack !== 'undefined' && artistHistoryStack.length > 0) {
             const prevArtist = artistHistoryStack.pop();
-            openArtistProfile(prevArtist, true); // true означает, что это возврат
+            openArtistProfile(prevArtist, true);
         } else {
-            // Если история пуста - просто закрываем окно и глушим музыку
             artistModal.classList.remove('active');
             if (typeof currentArtistInModal !== 'undefined') currentArtistInModal = null;
-            
-            // Выключаем плеер артиста
             if (typeof currentAudio !== 'undefined' && currentAudio && currentAudio.trackId && currentAudio.trackId.startsWith('artist-track')) {
                 currentAudio.pause();
                 if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
                     currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 }
+            }
+        }
+        return; // Останавливаем выполнение, если закрыли артиста
+    }
+
+    // 2. Проверяем окно жанра
+    const genreModal = document.getElementById("genreModal");
+    if (genreModal && genreModal.classList.contains('active')) {
+        genreModal.classList.remove('active');
+        if (typeof currentAudio !== 'undefined' && currentAudio) {
+            currentAudio.pause();
+            if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
+                currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
             }
         }
     }

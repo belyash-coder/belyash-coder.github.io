@@ -2678,3 +2678,29 @@ body.theme-light .seek-bar-container {
 .artist-header-bg {
     will-change: background-image;
 }
+/* --- ЭКСТРЕННАЯ ОПТИМИЗАЦИЯ ДЛЯ МОБИЛЬНЫХ (ФИКС ФРИЗОВ) --- */
+/* Отменяем тяжелые оптимизации, которые могли забить память */
+.track-card, .artist-search-card, .related-artist-card, .artist-avatar, .related-artist-photo, .artist-header-bg {
+    will-change: auto !important;
+    transform: none !important;
+}
+
+@media (max-width: 768px) {
+    /* Отключаем пересчет размытия фона на телефонах */
+    .modal, .artist-modal {
+        backdrop-filter: none !important;
+        background-color: rgba(19, 23, 41, 0.98) !important; /* Плотный темный фон вместо стекла */
+    }
+    
+    /* Убираем тяжелые тени и блюр с кнопок и аватарок */
+    .artist-avatar {
+        box-shadow: none !important;
+    }
+    .back-btn, .close-btn {
+        backdrop-filter: none !important;
+        background: rgba(19, 23, 41, 0.95) !important;
+    }
+    .artist-header-overlay {
+        backdrop-filter: none !important; 
+    }
+}
