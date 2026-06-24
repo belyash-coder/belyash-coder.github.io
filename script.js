@@ -754,7 +754,7 @@ if (searchInput && clearSearchBtn && searchResultsContainer) {
                     `;
 
                     artistCard.addEventListener("click", () => {
-                        searchResultsContainer.innerHTML = "";
+                        // Убрана очистка searchResultsContainer, чтобы выдача оставалась
                         openArtistProfile(data.name);
                     });
 
@@ -1358,6 +1358,13 @@ if (closeArtistBtn && artistModal) {
                 currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
             }
         }
+        
+        // --- НОВОЕ: ВОЗВРАЩАЕМ ОКНО ЖАНРА ПРИ ЗАКРЫТИИ АРТИСТА ---
+        const genreModal = document.getElementById("genreModal");
+        if (genreModal && genreModal.dataset.hiddenByArtist === "true") {
+            genreModal.style.display = ""; // Снова включаем рендер
+            genreModal.dataset.hiddenByArtist = "false";
+        }
     });
 }
 
@@ -1373,6 +1380,14 @@ if (artistBackBtn) {
 
 async function openArtistProfile(artistName, isBack = false) {
     if (!artistModal) return;
+
+    // --- НОВОЕ: ЖЕСТКО СКРЫВАЕМ ОКНО ЖАНРА ДЛЯ БУСТА FPS ---
+    const genreModal = document.getElementById("genreModal");
+    if (genreModal && genreModal.classList.contains("active") && !isBack) {
+        genreModal.style.display = "none"; // Полностью выключаем рендер нижнего окна
+        genreModal.dataset.hiddenByArtist = "true"; // Ставим метку, чтобы потом вернуть
+    }
+    // --------------------------------------------------------
 
     if (!isBack) {
         history.pushState({ modal: 'artist', name: artistName }, '');
@@ -1556,6 +1571,13 @@ window.addEventListener('popstate', (event) => {
                 if (typeof currentPlayBtn !== 'undefined' && currentPlayBtn) {
                     currentPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
                 }
+            }
+            
+            // --- НОВОЕ: ВОЗВРАЩАЕМ ОКНО ЖАНРА ПО КНОПКЕ "НАЗАД" ---
+            const genreModal = document.getElementById("genreModal");
+            if (genreModal && genreModal.dataset.hiddenByArtist === "true") {
+                genreModal.style.display = ""; 
+                genreModal.dataset.hiddenByArtist = "false";
             }
         }
         return; // Останавливаем выполнение, если закрыли артиста
