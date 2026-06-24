@@ -2704,3 +2704,26 @@ body.theme-light .seek-bar-container {
         backdrop-filter: none !important; 
     }
 }
+/* --- ФИНАЛЬНАЯ ОПТИМИЗАЦИЯ СКРОЛЛА И ФИКС КЛАВИАТУРЫ --- */
+
+/* 1. Изоляция отрисовки (убираем фризы при скролле) */
+#artistTopTracksContainer, #relatedArtistsContainer, #searchResults, #historyListContainer {
+    contain: content;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+}
+
+/* 2. Отключаем рендер невидимых элементов (максимальный буст производительности) */
+.track-card, .artist-search-card, .related-artist-card, .favorite-card, .search-result-card {
+    contain: layout style; 
+    content-visibility: auto; /* Движок пропустит отрисовку карточек вне экрана */
+    contain-intrinsic-size: 60px; /* Заглушка высоты для плавности скролла */
+}
+
+/* 3. Фикс двойного тапа для поля поиска (iOS/Android WebView) */
+#genreSearchInput {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
+    -webkit-appearance: none; /* Снимаем системные блокировки тапов */
+}

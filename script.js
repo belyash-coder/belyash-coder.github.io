@@ -634,7 +634,17 @@ function switchView(activeNav, activeView) {
 }
 
 if (navHome && homeView) navHome.addEventListener("click", () => switchView(navHome, homeView));
-if (navSearch && searchView) navSearch.addEventListener("click", () => switchView(navSearch, searchView));
+if (navSearch && searchView) {
+    navSearch.addEventListener("click", () => {
+        switchView(navSearch, searchView);
+        // Принудительно вызываем клавиатуру без дополнительных нажатий
+        const searchInputEl = document.getElementById("genreSearchInput");
+        if (searchInputEl) {
+            // Синхронный фокус работает надежнее всего в мобильных браузерах
+            searchInputEl.focus(); 
+        }
+    });
+}
 if (navLibrary && libraryView) navLibrary.addEventListener("click", () => switchView(navLibrary, libraryView));
 if (navProfile && profileView) navProfile.addEventListener("click", () => switchView(navProfile, profileView));
 
